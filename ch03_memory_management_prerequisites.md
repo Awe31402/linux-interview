@@ -1,109 +1,109 @@
-# 《奔跑吧 Linux內核》（第二版）卷1 第3章 內存管理之預備知識 高頻面試題
+# 《奔跑吧 Linux核心》（第二版）卷1 第3章 記憶體管理之預備知識 高頻面試題
 
 > **說明**：收錄自第 3 章開篇「本章的高頻面試題」，共計 7 題。
-> 答案結合書本理論、Linux 內核原始碼（本專案樹，版本 6.1.115）、
+> 答案結合書本理論、Linux 核心原始碼（本專案樹，版本 6.1.115）、
 > 以及 Radxa ROCK 5B（RK3588）實機（`radxa@192.168.68.57`）的實測資料。
 
 ---
 
-### 1. 请简述内存架构中UMA和NUMA的区别。
+### 1. 請簡述記憶體架構中 UMA 和 NUMA 的區別。
 
-- **UMA（Uniform Memory Access，统一内存访问）**：系统中所有 CPU 核访问任意一块物理内存的延迟/带宽基本一致，逻辑上只有一整块内存，不存在"本地/远程内存"之分，操作系统只需一个统一的内存管理域（一个 `pg_data_t` 节点）即可。
-- **NUMA（Non-Uniform Memory Access，非统一内存访问）**：系统划分为多个节点（node），每个节点有自己的本地 CPU 与本地内存，CPU 访问本地内存快、访问其它节点的远程内存慢，操作系统需要为每个节点维护独立的 `pg_data_t`，并做 NUMA 感知的调度与内存分配（详见第 1 章第 21 题）。
+- **UMA（Uniform Memory Access，統一記憶體存取）**：系統中所有 CPU 核存取任意一塊實體記憶體的延遲/頻寬基本一致，邏輯上只有一整塊記憶體，不存在「本地/遠端記憶體」之分，作業系統只需一個統一的記憶體管理域（一個 `pg_data_t` 節點）即可。
+- **NUMA（Non-Uniform Memory Access，非統一記憶體存取）**：系統劃分為多個節點（node），每個節點有自己的本地 CPU 與本地記憶體，CPU 存取本地記憶體快、存取其它節點的遠端記憶體慢，作業系統需要為每個節點維護獨立的 `pg_data_t`，並做 NUMA 感知的排程與記憶體分配（詳見第 1 章第 21 題）。
 
-实测本设备为单 SoC、单一 DDR 控制器域：`numactl --hardware` 输出 `No NUMA available on this system`，内核配置 `# CONFIG_NUMA is not set`，`/sys/devices/system/node/` 目录不存在——即典型 **UMA** 架构；全系统只有一个 `pg_data_t`（`contig_page_data` 或等价的单节点结构），8 个核（4×A55+4×A76）访问同一块 8GB LPDDR4 的（近似）延迟一致。
+實測本設備為單 SoC、單一 DDR 控制器域：`numactl --hardware` 輸出 `No NUMA available on this system`，核心組態 `# CONFIG_NUMA is not set`，`/sys/devices/system/node/` 目錄不存在——即典型 **UMA** 架構；全系統只有一個 `pg_data_t`（`contig_page_data` 或等價的單節點結構），8 個核（4×A55+4×A76）存取同一塊 8GB LPDDR4 的（近似）延遲一致。
 
-### 2. CPU访问各级存储结构的速度是否一样？
+### 2. CPU 存取各級儲存結構的速度是否一樣？
 
-不一样，存储层级（memory hierarchy）从快到慢、从小到大依次为：**寄存器 > L1 Cache > L2 Cache > L3 Cache > 主存（DRAM）> 辅存（Flash/eMMC/磁盘）**，每往下一级容量增大约一到几个数量级，访问延迟也相应增大一到几个数量级——这正是"存储层级金字塔"设计的核心权衡（用小容量高速存储 Cache 住热点数据，掩盖大容量低速存储的延迟）。
+不一樣，儲存階層（memory hierarchy）從快到慢、從小到大依次為：**暫存器 > L1 Cache > L2 Cache > L3 Cache > 主記憶體（DRAM）> 輔助記憶體（Flash/eMMC/磁碟）**，每往下一級容量增約一到幾個數量級，存取延遲也相應增大一到幾個數量級——這正是「儲存階層金字塔」設計的核心權衡（用小容量高速儲存 Cache 住熱點資料，掩蓋大容量低速儲存的延遲）。
 
-实测本设备各级差异（数量级示意）：
-- **L1（A55: 32KB/A76: 64KB）**：延迟约几个时钟周期；
-- **L2（A55: 128KB/A76: 512KB，均为核私有）**：延迟约十几个周期；
-- **L3（3MB，8 核共享，`shared_cpu_list: 0-7`）**：延迟约几十周期；
-- **主存（DDR，8GB，`/proc/iomem` 显示分为 3 段不连续物理区间）**：延迟通常是 L1 的百倍以上（一两百纳秒量级）；
-- **辅存（本设备通过 NVMe/eMMC/SD 卡启动，`/proc/iomem` 可见 `nvme` 设备）**：延迟是主存的千倍到万倍以上（微秒~毫秒级）。
+實測本設備各級差異（數量級示意）：
+- **L1（A55: 32KB/A76: 64KB）**：延遲約幾個時脈週期；
+- **L2（A55: 128KB/A76: 512KB，均為核私有）**：延遲約十幾個週期；
+- **L3（3MB，8 核共享，`shared_cpu_list: 0-7`）**：延遲約幾十週期；
+- **主記憶體（DDR，8GB，`/proc/iomem` 顯示分為 3 段不連續實體區間）**：延遲通常是 L1 的百倍以上（一兩百奈秒量級）；
+- **輔助記憶體（本設備透過 NVMe/eMMC/SD 卡啟動，`/proc/iomem` 可見 `nvme` 設備）**：延遲是主記憶體的千倍到萬倍以上（微秒~毫秒級）。
 
-同一级存储内部（如不同核的 L1 vs 共享的 L3）速度也不同：核私有 Cache 比跨核共享 Cache 更快，这也是为什么 big.LITTLE 架构中 A76（大核）配置比 A55（小核）更大的私有 L1/L2，用更多面积/功耗换取更低的平均访存延迟。
+同一級儲存內部（如不同核的 L1 vs 共享的 L3）速度也不同：核私有 Cache 比跨核共享 Cache 更快，這也是為什麼 big.LITTLE 架構中 A76（大核）配置比 A55（小核）更大的私有 L1/L2，用更多面積/功耗換取更低的平均訪存延遲。
 
-### 3. 请绘制内存管理常用的数据结构的关系图。如mm_struct、VMA、 vaddr、page、PFN、PTE、zone、paddr和pg_data等，并思考如下转换关系。 如何由mm_struct和vaddr找到对应的VMA？ 如何由page和VMA找到vaddr？ 如何由page找到所有映射的VMA？ 如何由VMA和vaddr找出相应的page数据结构？ page和PFN之间如何互换？ PFN和paddr之间如何互换？ page和PTE之间如何互换？ zone和page之间如何互换？ zone和pg_data之间如何互换？
+### 3. 請繪製記憶體管理常用的資料結構的關係圖。如 mm_struct、VMA、vaddr、page、PFN、PTE、zone、paddr 和 pg_data 等，並思考如下轉換關係。 如何由 mm_struct 和 vaddr 找到對應的 VMA？ 如何由 page 和 VMA 找到 vaddr？ 如何由 page 找到所有對映的 VMA？ 如何由 VMA 和 vaddr 找出相應的 page 資料結構？ page 和 PFN 之間如何互換？ PFN 和 paddr 之間如何互換？ page 和 PTE 之間如何互換？ zone 和 page 之間如何互換？ zone 和 pg_data 之間如何互換？
 
-关系图：
+關係圖：
 
 ```
-task_struct --> mm_struct --+--> pgd (页表, 由 vaddr 经页表逐级查得 PTE)
+task_struct --> mm_struct --+--> pgd (頁表, 由 vaddr 經頁表逐級查得 PTE)
                              |
-                             +--> mmap / 红黑树(maple tree) --> VMA(vm_area_struct) [代表一段连续 vaddr 区间]
+                             +--> mmap / 紅黑樹(maple tree) --> VMA(vm_area_struct) [代表一段連續 vaddr 區間]
                                                                     |
-                                                                    +--> vaddr 落在某个 VMA 内
+                                                                    +--> vaddr 落在某個 VMA 內
                                                                             |
-                                                                            v (查页表 PTE)
+                                                                            v (查頁表 PTE)
                                                                           PFN --(struct page*)--> page
                                                                             |
-                                                                pg_data_t --+--> zone[] --> page[] (每个 zone 管理一段 PFN 范围)
+                                                                pg_data_t --+--> zone[] --> page[] (每個 zone 管理一段 PFN 範圍)
                                                                             |
-                                                                page <--anon_vma/i_mmap 反向映射--> 所有映射它的 VMA
+                                                                page <--anon_vma/i_mmap 反向對映--> 所有對映它的 VMA
 ```
 
-各转换关系与对应内核接口：
+各轉換關係與對應核心介面：
 
-| 转换 | 方法 |
+| 轉換 | 方法 |
 |---|---|
-| **mm_struct + vaddr → VMA** | `find_vma(mm, vaddr)`：在 `mm->mmap`（新版本内核为 `mm->mm_mt` maple tree，旧版本为红黑树 `mm_rb`）中按 vaddr 查找覆盖该地址的 `vm_area_struct` |
-| **VMA + vaddr → page** | 先用 `mm->pgd` + `vaddr` 走页表（`pgd_offset`→`p4d_offset`→`pud_offset`→`pmd_offset`→`pte_offset_map`）取得 `pte_t`，再用 `pte_page(pte)` 或 `vm_normal_page()` 得到 `struct page *`（若缺页，则触发 `handle_mm_fault()` 建立映射） |
-| **page + VMA → vaddr** | 若已知该 page 被此 VMA 映射：`vaddr = vma->vm_start + ((page->index - vma->vm_pgoff) << PAGE_SHIFT)`（文件映射场景），或匿名页通过反向映射结构里记录的偏移计算 |
-| **page → 所有映射它的 VMA** | **反向映射（rmap）**：匿名页通过 `page->mapping`（低位打了 `PAGE_MAPPING_ANON` 标记）指向 `anon_vma`，再遍历 `anon_vma` 关联的 `anon_vma_chain` 找到所有共享该页的 VMA；文件页通过 `page->mapping`（`address_space`）+ `page->index`，配合 `address_space->i_mmap`（区间树）找到所有映射该文件同一偏移的 VMA。`rmap_walk()` 是统一入口 |
-| **page ↔ PFN** | `page_to_pfn(page)` = `page - vmemmap`（或经 `SPARSEMEM` 的 section 换算）；`pfn_to_page(pfn)` = `vmemmap + pfn`（`struct page` 数组按 PFN 线性排布，见第 4 题的 VMEMMAP 区域） |
-| **PFN ↔ paddr** | `paddr = pfn << PAGE_SHIFT`（`PFN_PHYS(pfn)`）；`pfn = paddr >> PAGE_SHIFT`（`PHYS_PFN(paddr)`），本设备 `PAGE_SHIFT=12`（4KB 页） |
-| **page ↔ PTE** | `pte_page(pte)` 由 PTE 中的 PFN 字段转 `struct page*`（即 `pfn_to_page(pte_pfn(pte))`）；反向 `mk_pte(page, prot)` 由 `page_to_pfn(page)` 结合权限位组装出 PTE 值 |
-| **zone ↔ page** | `page_zone(page)` 通过 `page->flags` 中编码的 zone 号，或由 PFN 落在哪个 zone 的 `[zone_start_pfn, zone_start_pfn+spanned_pages)` 区间判定；反向 `zone->zone_start_pfn` + 偏移即可枚举该 zone 内的 page |
-| **zone ↔ pg_data** | `zone->zone_pgdat` 指回所属节点的 `pg_data_t`；`pg_data_t->node_zones[]` 数组正向持有该节点所有 zone（如 `ZONE_DMA`/`ZONE_DMA32`/`ZONE_NORMAL`/`ZONE_HIGHMEM`/`ZONE_MOVABLE`） |
+| **mm_struct + vaddr → VMA** | `find_vma(mm, vaddr)`：在 `mm->mmap`（新版本核心為 `mm->mm_mt` maple tree，舊版本為紅黑樹 `mm_rb`）中按 vaddr 尋找涵蓋該位址的 `vm_area_struct` |
+| **VMA + vaddr → page** | 先用 `mm->pgd` + `vaddr` 走頁表（`pgd_offset`→`p4d_offset`→`pud_offset`→`pmd_offset`→`pte_offset_map`）取得 `pte_t`，再用 `pte_page(pte)` 或 `vm_normal_page()` 得到 `struct page *`（若缺頁，則觸發 `handle_mm_fault()` 建立對映） |
+| **page + VMA → vaddr** | 若已知該 page 被此 VMA 對映：`vaddr = vma->vm_start + ((page->index - vma->vm_pgoff) << PAGE_SHIFT)`（檔案對映情境），或匿名頁透過反向對映結構裡記錄的偏移計算 |
+| **page → 所有對映它的 VMA** | **反向對映（rmap）**：匿名頁透過 `page->mapping`（低位元打了 `PAGE_MAPPING_ANON` 標記）指向 `anon_vma`，再走訪 `anon_vma` 關聯的 `anon_vma_chain` 找到所有共享該頁的 VMA；檔案頁透過 `page->mapping`（`address_space`）+ `page->index`，配合 `address_space->i_mmap`（區間樹）找到所有對映該檔案同一偏移的 VMA。`rmap_walk()` 是統一入口 |
+| **page ↔ PFN** | `page_to_pfn(page)` = `page - vmemmap`（或經 `SPARSEMEM` 的 section 換算）；`pfn_to_page(pfn)` = `vmemmap + pfn`（`struct page` 陣列按 PFN 線性排布，見第 4 題的 VMEMMAP 區域） |
+| **PFN ↔ paddr** | `paddr = pfn << PAGE_SHIFT`（`PFN_PHYS(pfn)`）；`pfn = paddr >> PAGE_SHIFT`（`PHYS_PFN(paddr)`），本設備 `PAGE_SHIFT=12`（4KB 頁） |
+| **page ↔ PTE** | `pte_page(pte)` 由 PTE 中的 PFN 欄位轉 `struct page*`（即 `pfn_to_page(pte_pfn(pte))`）；反向 `mk_pte(page, prot)` 由 `page_to_pfn(page)` 結合權限位元組裝出 PTE 值 |
+| **zone ↔ page** | `page_zone(page)` 透過 `page->flags` 中編碼的 zone 號，或由 PFN 落在哪個 zone 的 `[zone_start_pfn, zone_start_pfn+spanned_pages)` 區間判定；反向 `zone->zone_start_pfn` + 偏移即可列舉該 zone 內的 page |
+| **zone ↔ pg_data** | `zone->zone_pgdat` 指回所屬節點的 `pg_data_t`；`pg_data_t->node_zones[]` 陣列正向持有該節點所有 zone（如 `ZONE_DMA`/`ZONE_DMA32`/`ZONE_NORMAL`/`ZONE_HIGHMEM`/`ZONE_MOVABLE`） |
 
-实测本设备（UMA、单节点）只有一个 `pg_data_t`（对应 `NODE_DATA(0)`），因 `CONFIG_ARM64_PA_BITS=48` 且无 32 位外设 DMA 限制场景，一般包含 `ZONE_DMA32`（覆盖 0~4GB，供仅支持 32 位 DMA 地址的外设使用）与 `ZONE_NORMAL`（覆盖其余物理内存），且实测 `/proc/iomem` 显示 DTB `/memory` 节点给出 3 段不连续物理内存（`0x200000~0xefe00000`、`0x100000000~0x200000000`、`0x2f0000000~0x300000000`，见第 6 题），这些不连续区间在同一 zone 内仍以 PFN 连续编号（借助 `SPARSEMEM` 的 section 管理物理地址空洞）。
+實測本設備（UMA、單節點）只有一個 `pg_data_t`（對應 `NODE_DATA(0)`），因 `CONFIG_ARM64_PA_BITS=48` 且無 32 位元週邊設備 DMA 限制情境，一般包含 `ZONE_DMA32`（涵蓋 0~4GB，供僅支援 32 位元 DMA 位址的週邊設備使用）與 `ZONE_NORMAL`（涵蓋其餘實體記憶體），且實測 `/proc/iomem` 顯示 DTB `/memory` 節點給出 3 段不連續實體記憶體（`0x200000~0xefe00000`、`0x100000000~0x200000000`、`0x2f0000000~0x300000000`，見第 6 題），這些不連續區間在同一 zone 內仍以 PFN 連續編號（借助 `SPARSEMEM` 的 section 管理實體位址空洞）。
 
-### 4. 在ARM64内核中，内核映像文件映射到内核空间的什么地方？
+### 4. 在 ARM64 核心中，核心影像檔對映到核心空間的什麼地方？
 
-内核映像（vmlinux 的 `.text/.rodata/.data/.bss` 等段）被映射到内核虚拟地址空间中 **`KIMAGE_VADDR`** 开始的一段专用区域，而**不是**在 `PAGE_OFFSET` 开始的物理内存线性映射区域内（两者是两个独立、彼此位置解耦的映射）。在本设备实际运行的 6.1 内核源码中：
+核心影像（vmlinux 的 `.text/.rodata/.data/.bss` 等區段）被對映到核心虛擬位址空間中 **`KIMAGE_VADDR`** 開始的一段專用區域，而**不是**在 `PAGE_OFFSET` 開始的實體記憶體線性對映區域內（兩者是兩個獨立、彼此位置解耦的對映）。在本設備實際執行的 6.1 核心原始碼中：
 
 ```c
 #define KIMAGE_VADDR    (MODULES_END)
 #define MODULES_END     (MODULES_VADDR + MODULES_VSIZE)
 ```
 
-即内核镜像映射区紧跟在 modules（可加载模块代码）区域之后，位于内核地址空间高地址端；早期内核版本（书中所述）用固定常量 `KIMAGE_VADDR = 0xFFFF000010000000` + `TEXT_OFFSET` 偏移来描述同一位置，但当前版本已移除 `TEXT_OFFSET`，且 `KIMAGE_VADDR` 随 `VA_BITS`/modules 区域大小动态计算（详见第 2 章第 6、7 题）。
+即核心影像對映區緊跟在 modules（可載入模組程式碼）區域之後，位於核心位址空間高位址端；早期核心版本（書中所述）用固定常數 `KIMAGE_VADDR = 0xFFFF000010000000` + `TEXT_OFFSET` 偏移來描述同一位置，但目前版本已移除 `TEXT_OFFSET`，且 `KIMAGE_VADDR` 隨 `VA_BITS`/modules 區域大小動態計算（詳見第 2 章第 6、7 題）。
 
-实测本设备 `/proc/kallsyms`（root）：`_stext = ffff800008010000`，与 `PAGE_OFFSET (0xffff800000000000)` 相差仅约 0x8010000（~128MB），说明本设备内核（因关闭了 `CONFIG_RANDOMIZE_BASE` 或该次启动未随机化）实际把内核镜像映射得非常接近 `PAGE_OFFSET`——这是因为 6.1 内核里 `KIMAGE_VADDR` 由 `MODULES_END`（=`_PAGE_END(VA_BITS_MIN)`，即内核地址空间起点附近）决定，而 `modules` 区域大小是固定的（`MODULES_VSIZE`，通常 128MB 量级），因此内核镜像紧接着 modules 区域之后、大致在 `PAGE_OFFSET` 之前的一段距离内，与实测数值吻合。
+實測本設備 `/proc/kallsyms`（root）：`_stext = ffff800008010000`，與 `PAGE_OFFSET (0xffff800000000000)` 相差僅約 0x8010000（~128MB），說明本設備核心（因關閉了 `CONFIG_RANDOMIZE_BASE` 或該次啟動未隨機化）實際把核心影像對映得非常接近 `PAGE_OFFSET`——這是因為 6.1 核心裡 `KIMAGE_VADDR` 由 `MODULES_END`（=`_PAGE_END(VA_BITS_MIN)`，即核心位址空間起點附近）決定，而 `modules` 區域大小是固定的（`MODULES_VSIZE`，通常 128MB 量級），因此核心影像緊接著 modules 區域之後、大致在 `PAGE_OFFSET` 之前的一段距離內，與實測數值吻合。
 
-### 5. 在ARM64内核中，内核空间和用户空间是如何划分的？
+### 5. 在 ARM64 核心中，核心空間和使用者空間是如何劃分的？
 
-同第 2 章第 4 题：用虚拟地址第 63 位区分——用户空间地址第 `63:48` 位为 0，内核空间对应位为 1。4KB 页 + 4 级页表（`VA_BITS=48`）下：
-
-```
-0000000000000000 ~ 0000ffffffffffff  256TB  用户空间 (TTBR0，每进程 mm->pgd 独立)
-ffff000000000000 ~ ffffffffffffffff  256TB  内核空间 (TTBR1，全局 swapper_pg_dir 共享)
-```
-
-实测本设备内核配置 `CONFIG_ARM64_VA_BITS=48`，与该 256TB/256TB 对半划分一致；`TCR_EL1` 的 `T0SZ`/`T1SZ` 字段各自独立配置 TTBR0/TTBR1 管理的地址范围大小，使得用户和内核空间可以各自独立设定有效地址位数（本设备两者相同均为 48 位）。
-
-### 6. 在系统启动时，ARM64 Linux内核如何知道系统有多大的物理内存？
-
-内核启动早期（`setup_arch()` → `arm64_memblock_init()` 之前）会解析 **设备树（Device Tree Blob, DTB）** 中的 **`/memory` 节点**：其 `reg` 属性以 `(base, size)` 一组或多组的形式（受 `#address-cells`/`#size-cells` 决定每个字段占几个 32 位 cell）描述系统实际存在的物理内存区间（可能不止一段，中间可能有 MMIO 地址空洞）。解析函数 `early_init_dt_scan_memory()`（`drivers/of/fdt.c`）读取每个 `reg` 条目，调用 **`memblock_add(base, size)`** 把这段物理内存注册进 `memblock` 这个启动期的临时内存分配器/内存区间登记表中，之后内核所有的内存布局决策（zone 划分、`sparse_init`、buddy 系统初始化）都基于 `memblock` 登记的这些区间进行。
-
-（除 DTB 外，UEFI/ACPI 启动路径则是解析 UEFI Memory Map / `EFI System Table` 获取内存区间，同样最终汇总进 `memblock`；也可以通过内核命令行 `mem=` 参数覆盖/裁剪。）
-
-实测本设备通过 `/proc/device-tree/memory/reg` 读出（`#address-cells=2 #size-cells=2`，每组 base/size 各占 8 字节）3 组物理内存区间：
+同第 2 章第 4 題：用虛擬位址第 63 位元區分——使用者空間位址第 `63:48` 位元為 0，核心空間對應位元為 1。4KB 頁 + 4 級頁表（`VA_BITS=48`）下：
 
 ```
-base=0x0000000000200000  size=0x00000000efe00000   (~3.75GB，低地址段，避开 0xf0000000 起的 MMIO/PCIe 空洞)
+0000000000000000 ~ 0000ffffffffffff  256TB  使用者空間 (TTBR0，每行程 mm->pgd 獨立)
+ffff000000000000 ~ ffffffffffffffff  256TB  核心空間 (TTBR1，全域 swapper_pg_dir 共享)
+```
+
+實測本設備核心組態 `CONFIG_ARM64_VA_BITS=48`，與該 256TB/256TB 對半劃分一致；`TCR_EL1` 的 `T0SZ`/`T1SZ` 欄位各自獨立配置 TTBR0/TTBR1 管理的位址範圍大小，使得使用者和核心空間可以各自獨立設定有效位址位元數（本設備兩者相同均為 48 位元）。
+
+### 6. 在系統啟動時，ARM64 Linux 核心如何知道系統有多大的實體記憶體？
+
+核心啟動早期（`setup_arch()` → `arm64_memblock_init()` 之前）會解析 **設備樹（Device Tree Blob, DTB）** 中的 **`/memory` 節點**：其 `reg` 屬性以 `(base, size)` 一組或多組的形式（受 `#address-cells`/`#size-cells` 決定每個欄位占幾個 32 位元 cell）描述系統實際存在的實體記憶體區間（可能不止一段，中間可能有 MMIO 位址空洞）。解析函式 `early_init_dt_scan_memory()`（`drivers/of/fdt.c`）讀取每個 `reg` 項目，呼叫 **`memblock_add(base, size)`** 把這段實體記憶體註冊進 `memblock` 這個啟動期的臨時記憶體分配器/記憶體區間登記表中，之後核心所有的記憶體佈局決策（zone 劃分、`sparse_init`、buddy 系統初始化）都基於 `memblock` 登記的這些區間進行。
+
+（除 DTB 外，UEFI/ACPI 啟動路徑則是解析 UEFI Memory Map / `EFI System Table` 獲取記憶體區間，同樣最終彙整進 `memblock`；也可以透過核心命令列 `mem=` 參數覆蓋/裁剪。）
+
+實測本設備透過 `/proc/device-tree/memory/reg` 讀出（`#address-cells=2 #size-cells=2`，每組 base/size 各占 8 位元組）3 組實體記憶體區間：
+
+```
+base=0x0000000000200000  size=0x00000000efe00000   (~3.75GB，低位址段，避開 0xf0000000 起的 MMIO/PCIe 空洞)
 base=0x0000000100000000  size=0x0000000100000000   (4GB)
 base=0x00000002f0000000  size=0x0000000010000000   (256MB)
 ```
 
-三段相加共约 8GB，与实机规格（8GB LPDDR4）、`free -h` 显示的 `Mem: 7.8Gi total` 吻合（差值是内核代码/页表/reserved/CMA 等占用），也与 `/proc/iomem` 中的 `System RAM` 条目完全对应。这也解释了为什么该 SoC 的物理内存在地址空间上不是单一连续区间——中间被 MMIO（GIC、PCIe config space、各类外设寄存器等，见 `/proc/iomem` 中 `f0000000~` 之后大量外设地址）打断，需要 `memblock`/`SPARSEMEM` 支持多段不连续物理内存的管理。
+三段相加共約 8GB，與實機規格（8GB LPDDR4）、`free -h` 顯示的 `Mem: 7.8Gi total` 吻合（差值是核心程式碼/頁表/reserved/CMA 等佔用），也與 `/proc/iomem` 中的 `System RAM` 項目完全對應。這也解釋了為什麼該 SoC 的實體記憶體在位址空間上不是單一連續區間——中間被 MMIO（GIC、PCIe config space、各類週邊設備暫存器等，見 `/proc/iomem` 中 `f0000000~` 之後大量週邊設備位址）打斷，需要 `memblock`/`SPARSEMEM` 支援多段不連續實體記憶體的管理。
 
-### 7. 物理内存页面如何添加到伙伴系统中，是一页一页添加，还是以2n来添 加呢？
+### 7. 實體記憶體頁面如何添加到夥伴系統中，是一頁一頁添加，還是以 2ⁿ 來添加呢？
 
-是**以 2ⁿ（幂次对齐的连续块）为单位批量添加**，而不是逐页添加。内核源码 `mm/memblock.c` 中的 `__free_pages_memory()` 函数（在 `memblock_free_all()` 释放启动期 `memblock` 托管的空闲内存、正式交给伙伴系统时调用）实现如下：
+是**以 2ⁿ（冪次方對齊的連續塊）為單位批次添加**，而不是逐頁添加。核心原始碼 `mm/memblock.c` 中的 `__free_pages_memory()` 函式（在 `memblock_free_all()` 釋放啟動期 `memblock` 託管的空閒記憶體、正式交給夥伴系統時呼叫）實作如下：
 
 ```c
 static void __init __free_pages_memory(unsigned long start, unsigned long end)
@@ -119,6 +119,6 @@ static void __init __free_pages_memory(unsigned long start, unsigned long end)
 }
 ```
 
-逻辑是：在待释放的 `[start, end)` 这段 PFN 区间里，每一步都取"**当前 `start` 地址对齐所允许的最大阶数**"（`__ffs(start)`，即 `start` 二进制表示中末尾连续 0 的个数，决定它最高能对齐到 2 的多少次方）与 `MAX_ORDER-1`（伙伴系统支持的最高阶）中的较小值作为初始阶数，再不断减小 `order` 直到 `2^order` 大小的块不超出剩余区间 `end`；然后调用 `memblock_free_pages()` 把这一整块（`1<<order` 个连续页）一次性交给伙伴系统对应阶的空闲链表，而不是拆成一页一页分别调用 `__free_page()`。
+邏輯是：在待釋放的 `[start, end)` 這段 PFN 區間裡，每一步都取「**目前 `start` 位址對齊所允許的最大階數**」（`__ffs(start)`，即 `start` 二進位表示中末尾連續 0 的個數，決定它最高能對齊到 2 的多少次方）與 `MAX_ORDER-1`（夥伴系統支援的最高階）中的較小值作為初始階數，再不斷減小 `order` 直到 `2^order` 大小的塊不超出剩餘區間 `end`；然後呼叫 `memblock_free_pages()` 把這一整塊（`1<<order` 個連續頁）一次性交給夥伴系統對應階的空閒鏈表，而不是拆成一頁一頁分別呼叫 `__free_page()`。
 
-**这样做的原因**：伙伴系统本身就是按 2ⁿ 阶（order）组织空闲块的，如果启动时把整段连续内存拆成最小的单页（order-0）逐个 free，之后运行时反而需要靠"伙伴合并（buddy merging）"机制一步步把相邻的 order-0 块合并回 order-1、order-2……效率低且过程繁琐；而在明确知道这段内存本来就是连续的启动阶段，直接按最大可能的对齐阶数一次性喂给伙伴系统对应阶的链表，可以立刻得到大阶数的空闲块，减少后续内存分配时因缺少大块连续内存而失败或需要合并的情况，初始化效率也更高。
+**這樣做的原因**：夥伴系統本身就是按 2ⁿ 階（order）組織空閒塊的，如果啟動時把整段連續記憶體拆成最小的單頁（order-0）逐個 free，之後執行時反而需要靠「夥伴合併（buddy merging）」機制一步步把相鄰的 order-0 塊合併回 order-1、order-2……效率低且過程繁瑣；而在明確知道這段記憶體本來就是連續的啟動階段，直接按最大可能的對齊階數一次性餵給夥伴系統對應階的鏈表，可以立刻得到大階數的空閒塊，減少後續記憶體分配時因缺少大塊連續記憶體而失敗或需要合併的情況，初始化效率也更高。
