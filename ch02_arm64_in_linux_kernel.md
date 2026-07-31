@@ -409,7 +409,7 @@ sudo dmesg | grep -E "PAGE_OFFSET|PAGE_END|MODULES_VADDR|memstart|__va|__pa\(PAG
 > `arm64_memblock_init()` 會做 `memstart_addr = round_down(memblock_start_of_DRAM(), ARM64_MEMSTART_ALIGN)`，
 > 而 `ARM64_MEMSTART_ALIGN` 在 4KB 頁時 = `1 << PUD_SHIFT` = **1 GB**
 > （`arch/arm64/include/asm/kernel-pgtable.h:131,147`），
-> 所以 `round_down(0x200000, 1GB) = 0`。這也是 [Ch3 Q6](./ch03_memory_management_prerequisites_ANSWERS.md#q6) 的伏筆。
+> 所以 `round_down(0x200000, 1GB) = 0`。這也是 [Ch3 Q6](./ch03_memory_management_prerequisites.md#q6) 的伏筆。
 
 ---
 
@@ -578,7 +578,7 @@ Freeing unused kernel memory: 7296K      ← 正好等於上面的「7296K init�
 ```
 
 `free_initmem()` 把 `__init_begin ~ __init_end` 整段還給伙伴系統
-（這也是 [Ch6 Q3](./ch06_memory_management_case_studies_ANSWERS.md#q3) 裡 MemTotal 對帳的一項）。
+（這也是 [Ch6 Q3](./ch06_memory_management_case_studies.md#q3) 裡 MemTotal 對帳的一項）。
 
 **(d) 段的權限可以從頁表看出來**（`armv8_dump.ko` 巡覽 `_stext`）：
 
@@ -1056,7 +1056,7 @@ MAIR_EL1  = 0x000000040044ffff
 （`books/rk3588_trm/part1/chapter_01.txt` Table 1-1）：`0xF0000000` 以上整段是週邊
 （PCIe3_4L_S @ F0000000、DSI HOST0 @ FDE20000 …），這些位址被 `ioremap()`
 映射時就會拿到 `AttrIndx=4`（Device-nGnRE）。這也解釋了為什麼
-[Ch3 Q6](./ch03_memory_management_prerequisites_ANSWERS.md#q6) 裡 DDR 的第一段
+[Ch3 Q6](./ch03_memory_management_prerequisites.md#q6) 裡 DDR 的第一段
 只到 `0xefe00000` 就斷掉——**後面那塊位址空間被 MMIO 佔走了**。
 
 ---
@@ -1516,7 +1516,7 @@ TTBR1_EL1 = 0x1476000001b2d001   BADDR(PA)=0x000001b2d000    ← L0 表的實體
 
 1. **數值範圍**：`0x2fffff000`、`0x2ffffe000` 都落在 **12 GB 以內**，
    正好在本機實體記憶體的最高段（`0x2f0000000 ~ 0x300000000`，見
-   [Ch3 Q6](./ch03_memory_management_prerequisites_ANSWERS.md#q6)）。
+   [Ch3 Q6](./ch03_memory_management_prerequisites.md#q6)）。
    核心**虛擬**位址一定是 `0xffff...` 開頭，這些顯然不是。
 
 2. **模組必須先 `__va()` 才能讀**：模組印出的下一級 entry 虛擬位址是

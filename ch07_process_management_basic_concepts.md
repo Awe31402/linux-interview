@@ -1458,7 +1458,7 @@ ssh radxa@192.168.68.57 'cd /tmp
 
 | 本章題目 | 關聯到第 6 章 |
 |---------|--------------|
-| [Q9](#q9) COW | 第 6 章 [Q2](./ch06_memory_management_case_studies_ANSWERS.md#q2) `AnonPages`、`/proc/PID/smaps` 的 `Shared_Dirty`/`Private_Dirty` |
-| [Q12](#q12) 頁表 | 第 6 章 [Q2](./ch06_memory_management_case_studies_ANSWERS.md#q2) `PageTables`（`NR_PAGETABLE`）、[Q8](./ch06_memory_management_case_studies_ANSWERS.md#q8) `VmPTE` |
-| [Q2](#q2) 核心堆疊 | 第 6 章 [Q2](./ch06_memory_management_case_studies_ANSWERS.md#q2) `KernelStack`（`NR_KERNEL_STACK_KB`） |
-| [Q7](#q7) 核心執行緒無 mm | 第 6 章 [Q9](./ch06_memory_management_case_studies_ANSWERS.md#q9) P_swap 統計時要跳過 `mm == NULL` 的 task |
+| [Q9](#q9) COW | 第 6 章 [Q2](./ch06_memory_management_case_studies.md#q2) `AnonPages`、`/proc/PID/smaps` 的 `Shared_Dirty`/`Private_Dirty` |
+| [Q12](#q12) 頁表 | 第 6 章 [Q2](./ch06_memory_management_case_studies.md#q2) `PageTables`（`NR_PAGETABLE`）、[Q8](./ch06_memory_management_case_studies.md#q8) `VmPTE` |
+| [Q2](#q2) 核心堆疊 | 第 6 章 [Q2](./ch06_memory_management_case_studies.md#q2) `KernelStack`（`NR_KERNEL_STACK_KB`） |
+| [Q7](#q7) 核心執行緒無 mm | 第 6 章 [Q9](./ch06_memory_management_case_studies.md#q9) P_swap 統計時要跳過 `mm == NULL` 的 task |

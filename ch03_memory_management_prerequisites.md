@@ -19,7 +19,7 @@
 > | 題 | 舊草稿說法 | **本機實測** |
 > |---|-----------|-------------|
 > | [Q3](#q3) | 「一般包含 **ZONE_DMA32**（涵蓋 0~4GB）與 ZONE_NORMAL」 | **ZONE_DMA 才是涵蓋 0~4GB 的那個（present 982528 頁）；`ZONE_DMA32` 是空的（present = 0）** |
-> | [Q4](#q4) | 「`_stext` 與 `PAGE_OFFSET (0xffff800000000000)` 相差約 0x8010000」 | `PAGE_OFFSET` 其實是 **`0xffff000000000000`**；`_stext` 是相對 `KIMAGE_VADDR (0xffff800008000000)` 偏移 0x10000。詳見 [Ch2 Q5](./ch02_arm64_in_linux_kernel_ANSWERS.md#q5) |
+> | [Q4](#q4) | 「`_stext` 與 `PAGE_OFFSET (0xffff800000000000)` 相差約 0x8010000」 | `PAGE_OFFSET` 其實是 **`0xffff000000000000`**；`_stext` 是相對 `KIMAGE_VADDR (0xffff800008000000)` 偏移 0x10000。詳見 [Ch2 Q5](./ch02_arm64_in_linux_kernel.md#q5) |
 >
 > **主要實驗工具**：`notes/experiments/mm_convert.c`（核心模組，把 Q3 的九種轉換全跑一遍）、
 > `notes/experiments/cache_ladder.c`（Q2 的 cache 延遲階梯）
@@ -171,7 +171,7 @@ ssh radxa@192.168.68.57 'for c in 0 4; do echo "-- cpu$c --"
 ```
 
 **與 TRM 完全一致** ✅。注意 **L3 的 `shared_cpu_list = 0-7`**——8 個核共用，
-這正是 [Ch2 Q13](./ch02_arm64_in_linux_kernel_ANSWERS.md#q13) 說的 DSU-L3，
+這正是 [Ch2 Q13](./ch02_arm64_in_linux_kernel.md#q13) 說的 DSU-L3，
 也是 `CLIDR_EL1.LoC = 3`（PoC 在 L3 之後）的原因。
 
 **(c) cache line 大小**（`armv8_dump.ko` 讀 `CTR_EL0`）：
@@ -250,7 +250,7 @@ ssh radxa@192.168.68.57 'lsblk -d -o NAME,SIZE,ROTA,MODEL 2>/dev/null | head; ca
 
 NVMe 的隨機讀延遲在 **50–100 µs** 量級 = DRAM 的 **200–500 倍**，
 再往下的網路儲存則是毫秒級。這就是為什麼 major fault（`pgmajfault`）
-比 minor fault 貴那麼多（見 [Ch7 Q9](./ch07_process_management_basic_concepts_ANSWERS.md#q9)）。
+比 minor fault 貴那麼多（見 [Ch7 Q9](./ch07_process_management_basic_concepts.md#q9)）。
 
 ---
 
@@ -385,7 +385,7 @@ ssh radxa@192.168.68.57 'cd ~/exp/armv8 && make
 = **`0xfffffc0001d25a40`** ✅
 —— 這就是 `CONFIG_SPARSEMEM_VMEMMAP` 的價值：`struct page` 陣列在虛擬位址上**線性排布**，
 `page_to_pfn()` 退化成一次減法 + 移位，不必查 section 表。
-（VMEMMAP 區用 2MB block 映射，見 [Ch2 Q3](./ch02_arm64_in_linux_kernel_ANSWERS.md#q3)。）
+（VMEMMAP 區用 2MB block 映射，見 [Ch2 Q3](./ch02_arm64_in_linux_kernel.md#q3)。）
 
 #### 轉換 [6] PFN ↔ paddr
 
@@ -445,7 +445,7 @@ RK3588 上有 32-bit DMA 能力限制的週邊（GMAC、USB 等），使 `arm64_
 被算成 **4 GB**。於是 `ZONE_DMA` 的上界就已經是 4 GB，`ZONE_DMA32`（上界也是 4 GB）
 自然一頁都分不到 → `present = 0`。
 
-**這對回答 [Ch6 Q11](./ch06_memory_management_case_studies_ANSWERS.md#q11)（lowmem_reserve_ratio）很關鍵**：
+**這對回答 [Ch6 Q11](./ch06_memory_management_case_studies.md#q11)（lowmem_reserve_ratio）很關鍵**：
 本機的「低端 zone」是 ZONE_DMA 且它占了一半以上的記憶體，
 所以保護它不被高端請求吃光特別重要。
 
@@ -467,8 +467,8 @@ RK3588 上有 32-bit DMA 能力限制的週邊（GMAC、USB 等），使 `arm64_
 ```
 
 > **書目**：奔跑吧 §3.2.3「從內存分布的角度看內存管理」（指向 §2.1.5 的佈局圖）。
-> 詳細討論見 [Ch2 Q6](./ch02_arm64_in_linux_kernel_ANSWERS.md#q6) 與
-> [Ch2 Q9](./ch02_arm64_in_linux_kernel_ANSWERS.md#q9)。
+> 詳細討論見 [Ch2 Q6](./ch02_arm64_in_linux_kernel.md#q6) 與
+> [Ch2 Q9](./ch02_arm64_in_linux_kernel.md#q9)。
 
 ### 實機驗證
 
@@ -502,7 +502,7 @@ sudo grep -w _stext /proc/kallsyms
 
 `PAGE_OFFSET` 在 6.1 是 **`0xffff000000000000`** 而不是 `0xffff800000000000`
 （Linux 5.4 把核心位址空間上下翻轉了，詳見
-[Ch2 Q5](./ch02_arm64_in_linux_kernel_ANSWERS.md#q5)）。
+[Ch2 Q5](./ch02_arm64_in_linux_kernel.md#q5)）。
 正確的說法是：**`_stext` 相對 `KIMAGE_VADDR` 偏移 0x10000**，
 而 `_stext` 與 `PAGE_OFFSET` 之間隔了整個 128 TB 的線性映射區。
 
@@ -515,7 +515,7 @@ sudo grep -w _stext /proc/kallsyms
 核心映像   __pa_symbol() 用 kimage_voffset            = 0xffff800007c00000
 ```
 
-見 [Ch2 Q10](./ch02_arm64_in_linux_kernel_ANSWERS.md#q10)。
+見 [Ch2 Q10](./ch02_arm64_in_linux_kernel.md#q10)。
 
 ---
 
@@ -536,7 +536,7 @@ sudo grep -w _stext /proc/kallsyms
 > **書目**：奔跑吧 §3.3.6「空間劃分」——
 > 「在 32 位 Linux 系統中，一共能使用的虛擬地址空間是 4GB，用戶空間和內核空間的劃分
 > 通常按照 3∶1 來劃分…ARM64 架構處理器中虛擬地址空間的劃分方式見 2.1.5 節。」
-> 完整討論見 [Ch2 Q4](./ch02_arm64_in_linux_kernel_ANSWERS.md#q4)。
+> 完整討論見 [Ch2 Q4](./ch02_arm64_in_linux_kernel.md#q4)。
 
 ### 實機驗證
 
@@ -778,7 +778,7 @@ Node 0, zone  Normal       8    2   12   95   24    3   3  64   0   0   0
 若當初是逐頁 free，開機初期會是 order-0 堆積如山。
 
 **（`zone Normal` 的 order-8/9/10 全是 0，是開機後跑了兩天 I/O 造成的碎片化，
-與 [Ch6 Q13](./ch06_memory_management_case_studies_ANSWERS.md#q13) 觀察到的
+與 [Ch6 Q13](./ch06_memory_management_case_studies.md#q13) 觀察到的
 watermark boost 飽和是同一件事的兩面。）**
 
 **(c) 用 order-10 的塊數反推**
@@ -790,7 +790,7 @@ order-10 空閒塊 465 × 1024 頁 = 476,160 頁 = 1.86 GB (占 49.6%)
 
 開機兩天後仍有一半的 ZONE_DMA 保持在最大階完整可用——
 這正是「批次以 2ⁿ 加入 + 反碎片化 migratetype 分組」的成果
-（見 [Ch6 Q4](./ch06_memory_management_case_studies_ANSWERS.md#q4)）。
+（見 [Ch6 Q4](./ch06_memory_management_case_studies.md#q4)）。
 
 **(d) 額外觀察：核心映像自己也被 `memblock_add`**
 
@@ -802,8 +802,8 @@ memblock_add(__pa_symbol(_text), (u64)(_end - _text));
 核心映像所在的實體區間也被登記進 memblock（然後立刻 `memblock_reserve`），
 確保 `struct page` 陣列涵蓋它 —— 這樣 `free_initmem()` 才有辦法在開機末期
 把 `__init_begin ~ __init_end` 那 7,296 kB **還給伙伴系統**
-（見 [Ch2 Q8](./ch02_arm64_in_linux_kernel_ANSWERS.md#q8) 與
-[Ch6 Q3](./ch06_memory_management_case_studies_ANSWERS.md#q3)）。
+（見 [Ch2 Q8](./ch02_arm64_in_linux_kernel.md#q8) 與
+[Ch6 Q3](./ch06_memory_management_case_studies.md#q3)）。
 
 ---
 
@@ -854,9 +854,9 @@ ssh radxa@192.168.68.57 '
 
 | 本章題目 | 關聯 |
 |---------|------|
-| [Q2](#q2) cache 階層 | [Ch2 Q13](./ch02_arm64_in_linux_kernel_ANSWERS.md#q13) PoU/PoC（`CLIDR_EL1.LoC=3` ← L3 是 PoC）、[Ch2 Q16](./ch02_arm64_in_linux_kernel_ANSWERS.md#q16) Inner Shareable 域 = DSU |
-| [Q3](#q3) rmap | [Ch7 Q9](./ch07_process_management_basic_concepts_ANSWERS.md#q9) COW（`_mapcount=1` 就是 fork 共享的結果） |
-| [Q3](#q3) zone | [Ch6 Q11](./ch06_memory_management_case_studies_ANSWERS.md#q11) lowmem_reserve、[Ch6 Q13](./ch06_memory_management_case_studies_ANSWERS.md#q13) watermark boost |
-| [Q4](#q4)/[Q5](#q5) | [Ch2 Q4-Q6](./ch02_arm64_in_linux_kernel_ANSWERS.md#q4)、[Ch2 Q9-Q12](./ch02_arm64_in_linux_kernel_ANSWERS.md#q9) |
-| [Q6](#q6) memblock | [Ch6 Q3](./ch06_memory_management_case_studies_ANSWERS.md#q3) MemTotal 對帳（8,386,560 → 8,129,516） |
-| [Q7](#q7) 伙伴系統 | [Ch6 Q4](./ch06_memory_management_case_studies_ANSWERS.md#q4) migratetype 反碎片化 |
+| [Q2](#q2) cache 階層 | [Ch2 Q13](./ch02_arm64_in_linux_kernel.md#q13) PoU/PoC（`CLIDR_EL1.LoC=3` ← L3 是 PoC）、[Ch2 Q16](./ch02_arm64_in_linux_kernel.md#q16) Inner Shareable 域 = DSU |
+| [Q3](#q3) rmap | [Ch7 Q9](./ch07_process_management_basic_concepts.md#q9) COW（`_mapcount=1` 就是 fork 共享的結果） |
+| [Q3](#q3) zone | [Ch6 Q11](./ch06_memory_management_case_studies.md#q11) lowmem_reserve、[Ch6 Q13](./ch06_memory_management_case_studies.md#q13) watermark boost |
+| [Q4](#q4)/[Q5](#q5) | [Ch2 Q4-Q6](./ch02_arm64_in_linux_kernel.md#q4)、[Ch2 Q9-Q12](./ch02_arm64_in_linux_kernel.md#q9) |
+| [Q6](#q6) memblock | [Ch6 Q3](./ch06_memory_management_case_studies.md#q3) MemTotal 對帳（8,386,560 → 8,129,516） |
+| [Q7](#q7) 伙伴系統 | [Ch6 Q4](./ch06_memory_management_case_studies.md#q4) migratetype 反碎片化 |
