@@ -26,15 +26,32 @@
 
 | 章節 | 解答檔 | 題數 | 亮點 |
 |------|--------|------|------|
+| 第 2 章 | 📝 [ch02_arm64_in_linux_kernel_ANSWERS.md](./ch02_arm64_in_linux_kernel_ANSWERS.md) | 23 | 自寫核心模組**直接讀 EL1 系統暫存器**（TCR/TTBR/MAIR/CLIDR…）＋軟體巡覽 4 級頁表；**TTBR0 == `__pa(mm->pgd)` 一位不差**；抓到活的 **2MB BLOCK 描述符**；SB litmus **31% 亂序 → `dmb ish` 後 0**。**修正三項常見誤解**（`PAGE_OFFSET` 值、佈局方向、實體位址寬度） |
+| 第 3 章 | 📝 [ch03_memory_management_prerequisites_ANSWERS.md](./ch03_memory_management_prerequisites_ANSWERS.md) | 7 | 核心模組把 **Q3 的九種轉換全部跑出實際數值**；cache 延遲階梯的**轉折點與 TRM Table 3-1 的 cache 大小完全吻合**（A76 L1 = 4.0 cycles）；DTB→memblock→MemTotal 一路對帳。**修正 ZONE_DMA32 的錯誤說法** |
 | 第 6 章 | 📝 [ch06_memory_management_case_studies_ANSWERS.md](./ch06_memory_management_case_studies_ANSWERS.md) | 14 | MemTotal 差值 **259092 kB 逐項對帳成功**；LRU 恆等式**完全吻合**；`MADV_PAGEOUT` 直接證明 shmem 不計入 `VmSwap`；抓到 **watermark boost 正在生效且已飽和（6463 頁）** |
 | 第 7 章 | 📝 [ch07_process_management_basic_concepts_ANSWERS.md](./ch07_process_management_basic_concepts_ANSWERS.md) | 15 | strace 抓出 fork/vfork/pthread 的 clone flags；**16384 次 COW 缺頁精準命中**；VmPTE 逐級變化證明頁表按需配置；ftrace 抓到 **`schedule_tail <-ret_from_fork`**；fork 輸出 **6 vs 8 兩種答案都重現** |
 
 ### 實驗程式
 
-`experiments/` 底下是解答中用到的所有 C 程式：
+`experiments/` 底下是解答中用到的所有程式碼。
+
+**核心模組**（在機台上編譯；`/lib/modules/$(uname -r)/build` 已指向完整核心原始碼樹）：
 
 | 檔案 | 用途 | 題目 |
 |------|------|------|
+| `armv8_dump.c` | 讀 EL1 系統暫存器（TCR/TTBR/MAIR/ID_AA64MMFR0/SCTLR/CTR/CLIDR）、印核心 VA 佈局、軟體巡覽 4 級頁表 | 2-1~6, 2-9~16, 2-20, 2-22, 2-23, 3-4~6 |
+| `mm_convert.c` | 把 mm/VMA/page/PFN/paddr/PTE/zone/pgdat 的九種轉換全部跑一遍 | **3-3** |
+| `Makefile.mod` | 兩個模組的 Kbuild Makefile（上傳時改名為 `Makefile`） | — |
+
+**使用者態程式**：
+
+| 檔案 | 用途 | 題目 |
+|------|------|------|
+| `pagemap_walk.c` | 使用者態 VA→PFN→PA（`/proc/self/pagemap`），與核心模組交叉驗證 | 2-2, 2-4, 3-3 |
+| `barrier_sb.c` | Store-Buffer litmus test：證明 ARM64 弱序 + 屏障有效 | **2-17, 2-18** |
+| `barrier_mp.c` | Message-Passing litmus test（含「為何測不到」的誠實說明） | 2-18 |
+| `cache_ladder.c` | Cache 延遲階梯（pointer chase），量出 L1/L2/L3/DRAM | **3-2** |
+| `hold_page.c` | 配一頁匿名記憶體 + fork 共享，供 `mm_convert.ko` 查詢 | 3-3 |
 | `lru_shmem.c` | shmem/anon 對 LRU、AnonPages、Cached、Mapped 的影響 | 6-5, 6-6, 6-7 |
 | `swap_shmem.c` | `MADV_PAGEOUT` 比對 `VmSwap` vs `SwapFree` | 6-9 |
 | `life.c` | 僵屍態、`wait()` 回收、孤兒託孤 | 7-3, 7-5 |
@@ -44,11 +61,20 @@
 | `q11.c` / `q11_pid.c` | fork 迴圈輸出幾個 `_` | 7-11 |
 | `pgtbl.c` / `pgfork.c` | 頁表按需配置與 fork 複製 | 7-12 |
 
-一鍵在機台上重跑：
+一鍵在機台上建置：
 
 ```bash
+# 使用者態程式
 scp notes/experiments/*.c radxa@192.168.68.57:/tmp/
 ssh radxa@192.168.68.57 'cd /tmp
-  for s in life tid prims vfork_order cow q11 q11_pid pgtbl pgfork lru_shmem swap_shmem; do
-      gcc -O0 -w -o $s $s.c -lpthread 2>/dev/null; done'
+  for s in life tid prims vfork_order cow q11 q11_pid pgtbl pgfork \
+           lru_shmem swap_shmem pagemap_walk barrier_sb barrier_mp \
+           cache_ladder hold_page; do
+      gcc -O2 -w -o $s $s.c -lpthread 2>/dev/null; done'
+
+# 核心模組
+ssh radxa@192.168.68.57 'mkdir -p ~/exp/armv8'
+scp notes/experiments/armv8_dump.c notes/experiments/mm_convert.c radxa@192.168.68.57:~/exp/armv8/
+scp notes/experiments/Makefile.mod radxa@192.168.68.57:~/exp/armv8/Makefile
+ssh radxa@192.168.68.57 'cd ~/exp/armv8 && make'
 ```
