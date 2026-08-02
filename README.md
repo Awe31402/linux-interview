@@ -32,6 +32,8 @@
 | 第 5 章 | 📝 [ch05_memory_management_advanced_topics.md](./ch05_memory_management_advanced_topics.md) | 48 | **KSM 64 頁合併成 1 頁**（PFN `0x731ab`）寫入後 COW 分家；**規整實際搬動 284 頁**（PFN 低→高）資料 100% 完整；換出換入 **`pgmajfault`=`pswpin`=65529 一頁不差**；`boost=6463` 打通 fallback→boost→kcompactd 完整因果鏈 |
 | 第 6 章 | 📝 [ch06_memory_management_case_studies.md](./ch06_memory_management_case_studies.md) | 14 | MemTotal 差值 **259092 kB 逐項對帳成功**；LRU 恆等式**完全吻合**；`MADV_PAGEOUT` 直接證明 shmem 不計入 `VmSwap`；抓到 **watermark boost 正在生效且已飽和（6463 頁）** |
 | 第 7 章 | 📝 [ch07_process_management_basic_concepts.md](./ch07_process_management_basic_concepts.md) | 15 | strace 抓出 fork/vfork/pthread 的 clone flags；**16384 次 COW 缺頁精準命中**；VmPTE 逐級變化證明頁表按需配置；ftrace 抓到 **`schedule_tail <-ret_from_fork`**；fork 輸出 **6 vs 8 兩種答案都重現** |
+| 第 8 章 | 📝 [ch08_process_management_scheduling_and_load_balancing.md](./ch08_process_management_scheduling_and_load_balancing.md) | 45 | **Δvruntime/Δexec = 3.0567 = 1024/335 一位不差**；時間片實測全部命中 `__sched_period()`（n≤8→24 ms、n>8→n×3 ms）；模組算出 **`LOAD_AVG_MAX = 47742`** 與核心相同；**頻率不變性 2256/1200/600 MHz → util 243/131/64**；**算力不變性 A55/A76 = 0.403 vs 422/1024**；`cost = power×fmax/f` **19 個 OPP 全部對帳**；**切成 schedutil 後 dmesg 噴出「starting EAS」**，輕載 100% 落 A55、關掉 EAS 後 73% 跑上 A76；**ftrace 抓出 `kworker/u16` 讓 SCHED_FIFO 行程等了 10 ms**。**修正 12 處 5.0→6.1 的差異** |
+| 第 9 章 | 📝 [ch09_process_management_debugging_and_case_studies.md](./ch09_process_management_debugging_and_case_studies.md) | 13 | **`/proc/sched_debug` 與 `sched_latency_ns` 全部搬到 debugfs**（書上路徑已失效）；`latency_ns=24 ms / min_granularity_ns=3 ms`，**臨界點 nr_running=8 實測命中**；**RK3588 只有 1 層 MC 域、8 個單 CPU 調度組**（與書上兩層拓撲不同）；書上 §9.2 場景重現：**5 個行程 200 ms 內收斂成 3/2**；**關中斷後 `schedule()` 回來 `irqs_disabled()` 從 128 變 0** |
 
 ### 實驗程式
 
@@ -44,6 +46,7 @@
 | `armv8_dump.c` | 讀 EL1 系統暫存器（TCR/TTBR/MAIR/ID_AA64MMFR0/SCTLR/CTR/CLIDR）、印核心 VA 佈局、軟體巡覽 4 級頁表 | 2-1~6, 2-9~16, 2-20, 2-22, 2-23, 3-4~6 |
 | `mm_convert.c` | 把 mm/VMA/page/PFN/paddr/PTE/zone/pgdat 的九種轉換全部跑一遍 | **3-3** |
 | `mm_probe.c` | 伙伴系統 free_area（66 條鏈）、gfp_zone 表、zonelist、水位、SLUB、`page->flags` 佈局、外碎片指標 | **4-1~4-7, 4-18, 5-4, 5-38, 5-42~5-47** |
+| `sched_probe.c` | 權重/wmult 表對帳、`__calc_delta()`、PELT 衰減表與 `LOAD_AVG_MAX`、**ARM64 ASID**、`cpu_context` 佈局、行程優先級欄位、**關中斷後 `schedule()`**、原子上下文檢查 | **8-1, 8-3, 8-7, 8-13, 8-19, 8-20, 8-28, 8-43~8-45, 9-7, 9-9, 9-11~9-13** |
 | `Makefile.mod` | 兩個模組的 Kbuild Makefile（上傳時改名為 `Makefile`） | — |
 
 **使用者態程式**：
@@ -71,6 +74,13 @@
 | `cow.c` | COW 缺頁計數與 smaps Shared/Private_Dirty | 7-9 |
 | `q11.c` / `q11_pid.c` | fork 迴圈輸出幾個 `_` | 7-11 |
 | `pgtbl.c` / `pgfork.c` | 頁表按需配置與 fork 複製 | 7-12 |
+| `sched_weight.c` | nice→weight→CPU 佔比、Δvruntime/Δexec、時間片 vs nr_running | **8-1, 8-3, 8-8, 8-14, 8-21, 9-4** |
+| `pelt_duty.c` | 週期性負載產生器（固定 duty / 固定工作量），驗證 PELT 的頻率與算力不變性 | **8-15~8-23, 8-29~8-32** |
+| `wake_cpu.c` | 1 waker + N wakee 的 pipe ping-pong，觀察 wake_affine / wake_wide | **8-28** |
+| `lb_case.c` | 書上 §9.2 的負載均衡場景重現 | **8-25~8-27, 9-5** |
+| `vruntime_place.c` | `place_entity()` 的 START_DEBIT 與 GENTLE_FAIR_SLEEPERS | **8-5, 8-6** |
+| `rt_latency.c` | 迷你 cyclictest：SCHED_OTHER vs SCHED_FIFO、空閒 vs 滿載的喚醒延時 | **8-36~8-40** |
+| `sched_trace.sh` | ftrace 腳本（switch / newtask / tick / wakeup / balance） | **8-4, 8-9~8-12, 8-41, 9-5, 9-8~9-11** |
 
 一鍵在機台上建置：
 
@@ -81,12 +91,22 @@ ssh radxa@192.168.68.57 'cd /tmp
   for s in life tid prims vfork_order cow q11 q11_pid pgtbl pgfork \
            lru_shmem swap_shmem pagemap_walk barrier_sb barrier_mp \
            cache_ladder hold_page fault_types esr_far mmap_vma \
-           concurrent_fault ksm_test migrate_compact reclaim_test; do
+           concurrent_fault ksm_test migrate_compact reclaim_test \
+           sched_weight pelt_duty wake_cpu lb_case vruntime_place rt_latency; do
       gcc -O2 -w -o $s $s.c -lpthread 2>/dev/null; done'
+
+# ftrace 腳本（第 8/9 章）
+scp notes/experiments/sched_trace.sh radxa@192.168.68.57:/tmp/
+ssh radxa@192.168.68.57 'chmod +x /tmp/sched_trace.sh'
 
 # 核心模組
 ssh radxa@192.168.68.57 'mkdir -p ~/exp/armv8'
-scp notes/experiments/armv8_dump.c notes/experiments/mm_convert.c notes/experiments/mm_probe.c radxa@192.168.68.57:~/exp/armv8/
+scp notes/experiments/armv8_dump.c notes/experiments/mm_convert.c \
+    notes/experiments/mm_probe.c notes/experiments/sched_probe.c radxa@192.168.68.57:~/exp/armv8/
 scp notes/experiments/Makefile.mod radxa@192.168.68.57:~/exp/armv8/Makefile
 ssh radxa@192.168.68.57 'cd ~/exp/armv8 && make'
 ```
+
+> **第 8/9 章的實驗會改動機台設定**（cpufreq governor、`sched_schedstats`、
+> ftrace、debugfs 的 sched 參數）。兩份筆記的**附錄**都附了完整的還原指令，
+> 跑完請記得執行。

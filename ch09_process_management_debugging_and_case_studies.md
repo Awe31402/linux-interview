@@ -173,13 +173,7 @@ sum_exec   wait_sum  nr_switches   （單位：ns）
 **(d) `ps` 快速看**
 
 ```bash
-ssh radxa@192.168.68.57 'ps -eo pid,cls,rtprio,ni,psr,pcpu,comm --sort=-pcpu | head -8'
-```
-```
-    PID CLS RTPRIO  NI PSR %CPU COMMAND
-      1 TS       -   0   4  0.1 systemd
-    158 FF      50   -   0  0.0 sugov:0     ← SCHED_FIFO prio 50
-     38 FF      99   -   5  0.0 migration/5 ← stop class
+ssh radxa@192.168.68.57 'ps -eo pid,cls,pri,rtprio,ni,psr,pcpu,comm --sort=-pcpu | head -8'
 ```
 `CLS`：`TS`=SCHED_OTHER、`FF`=SCHED_FIFO、`RR`=SCHED_RR、`DLN`=SCHED_DEADLINE、
 `B`=SCHED_BATCH、`IDL`=SCHED_IDLE。`PSR` 是目前所在的 CPU。
@@ -270,25 +264,26 @@ ssh radxa@192.168.68.57 'sudo grep -A22 "^cfs_rq\[3\]:/$" /sys/kernel/debug/sche
 ```
 cfs_rq[3]:/
   .exec_clock                    : 0.000000
-  .MIN_vruntime                  : 0.000001        ← 紅黑樹最左節點
-  .min_vruntime                  : 6158818.908804  ← 佇列基準線（單調遞增）
+  .MIN_vruntime                  : 0.000001        ← 紅黑樹最左節點（空佇列時印 1ns）
+  .min_vruntime                  : 3864604.880899  ← 佇列基準線（單調遞增）
   .max_vruntime                  : 0.000001        ← 紅黑樹最右節點
   .spread                        : 0.000000        ← max - MIN
-  .spread0                       : -4528335.438595 ← 本佇列 min_vruntime 與 cpu0 的差
+  .spread0                       : -737063.074821  ← 本佇列 min_vruntime 與 cpu0 的差
+  .nr_spread_over                : 0               ← vruntime 偏離超過 3×latency 的次數
   .nr_running                    : 0
   .h_nr_running                  : 0               ← 含子群組的總數（組調度）
   .idle_nr_running               : 0               ← SCHED_IDLE 的個數（5.13 新增）
   .idle_h_nr_running             : 0
   .load                          : 0               ← 總權重
   .load_avg                      : 0               ← PELT 量化負載
-  .runnable_avg                  : 0               ← ★ 5.7 改名（原 runnable_load_avg）
-  .util_avg                      : 0               ← PELT 實際算力
+  .runnable_avg                  : 6               ← ★ 5.7 改名（原 runnable_load_avg）
+  .util_avg                      : 6               ← PELT 實際算力
   .util_est_enqueued             : 0               ← 5.1 新增
   .removed.load_avg              : 0               ← 待移除的 blocked load
   .removed.util_avg              : 0
   .removed.runnable_avg          : 0
   .tg_load_avg_contrib           : 0               ← 對 task_group 的貢獻
-  .tg_load_avg                    : 0
+  .tg_load_avg                   : 0
   .throttled                     : 0               ← CFS bandwidth
   .throttle_count                : 0
 ```
@@ -296,14 +291,18 @@ cfs_rq[3]:/
 **組調度時每個 cgroup 各有一份**（本機開了 `CONFIG_FAIR_GROUP_SCHED` + autogroup）：
 
 ```bash
-ssh radxa@192.168.68.57 'sudo grep "^cfs_rq\[3\]" /sys/kernel/debug/sched/debug | head'
+ssh radxa@192.168.68.57 'sudo grep "^cfs_rq\[3\]" /sys/kernel/debug/sched/debug'
 ```
 ```
 cfs_rq[3]:/user.slice/user-107.slice/session-c2.scope
-cfs_rq[3]:/user.slice/user-1000.slice/user@1000.service/background.slice
-cfs_rq[3]:/system.slice/...
+cfs_rq[3]:/user.slice/user-1000.slice/user@1000.service/session.slice
+cfs_rq[3]:/user.slice/user-1000.slice/user@1000.service
+cfs_rq[3]:/user.slice/user-1000.slice/session-23.scope
+cfs_rq[3]:/user.slice
+cfs_rq[3]:/system.slice
 cfs_rq[3]:/
 ```
+**單單 CPU3 就有 7 條 cfs_rq**（root + 6 層 cgroup 階層）。
 **這就是為什麼直接比較 `/proc/pid/sched` 的 `se.vruntime` 和
 `cfs_rq[N]:/` 的 `min_vruntime` 會對不上**——它們在不同的佇列上。
 要對照請先關掉 autogroup 並把行程移到 root cgroup
@@ -316,13 +315,25 @@ ssh radxa@192.168.68.57 'sudo awk "/^runnable tasks:/{f=1} f" /sys/kernel/debug/
 ```
 ```
 runnable tasks:
- S            task   PID         tree-key  switches  prio     wait-time  sum-exec  sum-sleep
--------------------------------------------------------------------------------------------
- S         systemd     1     41165.815840     60249   120         0.000   631.815  8281.221
- I     kworker/0:1 94266      1234.567890       123   120         0.000     1.234     0.000
+ S            task   PID         tree-key  switches  prio     wait-time         sum-exec     sum-sleep
+------------------------------------------------------------------------------------------------------
+ S         systemd     1       650.968844     10265   120         0.000000   5889.413140      0.000000  /init.scope
+ S        kthreadd     2   4600375.813508      5777   120         0.000000   1074.580777      0.000000  /
+ I          rcu_gp     3        14.040436         2   100         0.000000      0.018375      0.000000  /
+ I      rcu_par_gp     4        16.045668         2   100         0.000000      0.013417      0.000000  /
+ I    slub_flushwq     5        18.051501         2   100         0.000000      0.013709      0.000000  /
+ I           netns     6        20.057333         2   100         0.000000      0.014000      0.000000  /
+ I    mm_percpu_wq   10        26.829501         2   100         0.000000      0.013707      0.000000  /
 ```
-9 個欄位：狀態、名稱、PID、**紅黑樹 key（= vruntime）**、切換次數、優先級、
-等待時間、累計執行、累計睡眠。
+欄位：狀態、名稱、PID、**紅黑樹 key（= `vruntime − min_vruntime`）**、切換次數、
+優先級、等待時間、累計執行、累計睡眠、**所屬 cgroup**。
+
+三個可以直接讀出來的事實：
+* `systemd` 的 tree-key 只有 650，`kthreadd` 卻有 4600375 —— 因為它們**在不同的 cfs_rq 上**
+  （`/init.scope` vs root），tree-key 不可跨佇列比較。
+* `rcu_gp` / `rcu_par_gp` 等 workqueue rescuer 的 **prio = 100**
+  → 它們是 `SCHED_FIFO` 或 nice=−20？其實是 `MAX_RT_PRIO = 100`，即 nice −20 的 CFS 行程。
+* 狀態 `I` = `TASK_IDLE`（不可中斷但不計入 loadavg），是 kthread 常見的閒置狀態。
 
 **(e) 檔案有多大**
 
@@ -888,22 +899,27 @@ nice → weight → { vruntime 走多快 、 分到多少時間片 、 量化負
 ssh radxa@192.168.68.57 'ps -eL --no-headers | wc -l; ls /proc | grep -c "^[0-9]"'
 ```
 ```
-690      ← 系統中的 task（執行緒）總數
-368      ← /proc 底下的 PID（thread group）數
+498      ← 系統中的 task（執行緒）總數
+299      ← /proc 底下的 PID（thread group）數
 ```
-**690 個 task 但只有 368 個 PID**——差額 322 就是「執行緒」。
-對調度器而言它們**完全平等**，每一個都有自己的 `se.vruntime`、
-自己的 PELT 訊號、自己在紅黑樹上的節點。
+**498 個 task 但只有 299 個 thread group** —— 差額 199 就是「執行緒」。
+（第 7 章在同一台機器上量到 558 / 295。）
 
-**(b) 「分配 CPU 時間的基本單位」——同一個行程的兩個執行緒各自被調度**
+對調度器而言 task 與「行程」**完全平等**，每一個都有自己的 `se.vruntime`、
+自己的 PELT 訊號、自己在紅黑樹上的節點 —— 這就是「行程（執行緒）是分配 CPU 時間的基本單位」。
+
+**(b) 「分配 CPU 時間的基本單位」——同一個行程的每個執行緒各自被調度**
 
 ```bash
-ssh radxa@192.168.68.57 'for t in /proc/$(pgrep -f Xtigervnc | head -1)/task/*; do
-  echo "tid=$(basename $t) $(grep -E "^se.sum_exec_runtime|^se.vruntime" $t/sched | tr -s " " | tr "\n" " ")"
-done 2>/dev/null | head -5'
+# 挑一個多執行緒行程，逐個 tid 看它自己的 vruntime
+ssh radxa@192.168.68.57 'P=$(pgrep -f Xtigervnc | head -1); for t in /proc/$P/task/*; do
+  printf "tid=%-8s %s\n" "$(basename $t)" \
+    "$(grep -E "^se.vruntime|^se.sum_exec_runtime|^nr_switches" $t/sched | tr -s " " | tr "\n" " ")"
+done'
 ```
-每個 tid 都有獨立的 `se.vruntime` 與 `se.sum_exec_runtime`
-→ **調度單位確實是 task 而不是 thread group。**
+每個 tid 在 `/proc/<pid>/task/<tid>/sched` 底下都有**獨立**的
+`se.vruntime` / `se.sum_exec_runtime` / `nr_switches`
+→ **調度單位確實是 task，不是 thread group。**
 
 **(c) 優先級真的「逃離不掉」——一條線串起全部**
 
@@ -948,7 +964,7 @@ CPU 時間比 = **75.28% : 24.72%**，理論 `1024:335` = **75.35% : 24.65%**。
 | `static_prio` | 100~139 | **靜態**優先級 = `nice + 120`，只有 `setpriority()`/`nice()` 能改 |
 | `normal_prio` | 0~139 | 依 policy 算出的「應有」優先級：普通 = `static_prio`；RT = `99 - rt_priority`；DL = `MAX_DL_PRIO-1 = -1` |
 | **`prio`** | 0~139 | **動態**優先級，**調度器真正比較的就是它**。平常 = `normal_prio`，但 rt-mutex 的**優先級繼承（PI）**會臨時把它拉高 |
-| `rt_priority` | 0~99 | 使用者設定的 RT 優先級（**數字越大越優先**，和 prio 相反） |
+| `rt_priority` | 0~99 | 使用者設定的 RT 優先級（**數字越大越優先**，和 prio 相反）。`SCHED_DEADLINE` 不用這欄，改用 `dl.dl_runtime/dl_deadline/dl_period` |
 
 換算（`kernel/sched/core.c`）：
 
@@ -1023,38 +1039,89 @@ ssh radxa@192.168.68.57 'sudo insmod ~/exp/sched/sched_probe.ko; sudo rmmod sche
 
 `prio = static_prio = normal_prio = 120`，`rt_priority = 0`，`nice = 0` —— 全部一致。
 
-**(b) 一個 RT 行程的欄位**
+**(b) 一個非 CFS 行程的欄位 —— 實測 `sugov:0`**
+
+`sugov:N` 是 schedutil 的換頻 kthread。**只有把 governor 切成 schedutil 才會存在。**
 
 ```bash
-ssh radxa@192.168.68.57 'pgrep sugov | head -1 | xargs -I{} sudo bash -c "
-insmod ~/exp/sched/sched_probe.ko target_pid={}; rmmod sched_probe
-dmesg | sed \"s/^\[[^]]*\] //\" | grep -A3 \"行程 sugov\""'
-```
-```
-== 行程 sugov:0/158 的調度欄位 ==
-   prio=49  static_prio=120  normal_prio=49  rt_priority=50  nice=0
-   policy=1  sched_class=<rt_sched_class>
+ssh radxa@192.168.68.57 'sudo bash -c "
+for p in 0 4 6; do echo schedutil > /sys/devices/system/cpu/cpufreq/policy\$p/scaling_governor; done
+sleep 1; ps -eo pid,cls,pri,rtprio,ni,comm | grep -E \"PID|sugov\"
+P=\$(pgrep sugov | head -1); dmesg -C
+insmod ~/exp/sched/sched_probe.ko target_pid=\$P; rmmod sched_probe
+dmesg | sed \"s/^\[[^]]*\] //\" | grep -A4 \"行程 sugov\"
+for p in 0 4 6; do echo ondemand > /sys/devices/system/cpu/cpufreq/policy\$p/scaling_governor; done"'
 ```
 
-**這是這一題最漂亮的實證：**
-* `policy = 1` = `SCHED_FIFO`
-* `rt_priority = 50`（使用者設的，越大越優先）
-* `normal_prio = 99 − 50 = 49` ✅ **`__normal_prio()` 的公式命中**
-* `prio = 49`（沒有 PI 提升）
-* **`static_prio` 還是 120** —— 因為它從來沒被 `nice()` 改過；
-  對 RT 行程來說 `static_prio` 是**無意義的殘留值**（這是常見的面試陷阱）。
+```
+    PID CLS PRI RTPRIO  NI COMMAND
+   2239 DLN 140      0   - sugov:0
+   2240 DLN 140      0   - sugov:4
+   2241 DLN 140      0   - sugov:6
 
-**(c) 從命令列快速看**
+sched_probe: == 行程 sugov:0/2239 的調度欄位（Ch9 Q7 / Ch8 Q28）==
+sched_probe:    prio=-1  static_prio=120  normal_prio=-1  rt_priority=0  nice=0
+sched_probe:    policy=6  sched_class=0xffff800009666198
+sched_probe:    se.load.weight=1048576  se.load.inv_weight=4194304
+sched_probe:    se.vruntime=0  se.sum_exec_runtime=2471583  se.exec_start=74240930091
+```
+
+> ⚠️ **一個容易答錯的點：`sugov:N` 不是 `SCHED_FIFO`，是 `SCHED_DEADLINE`。**
+> Linux 4.16 的 commit `794a56ebd9a5`（"sched/cpufreq: Change the worker kthread to
+> SCHED_DEADLINE"）把它改掉了，就是為了讓換頻工作不會被 RT 行程餓死、
+> 又不會像 FIFO 那樣無界佔用 CPU。`ps` 顯示的 `DLN` 就是 `SCHED_DEADLINE`。
+>
+> ```c
+> /* kernel/sched/cpufreq_schedutil.c:616 */
+> struct sched_attr attr = {
+>         .sched_policy   = SCHED_DEADLINE,
+>         .sched_flags    = SCHED_FLAG_SUGOV,
+>         .sched_runtime  =  1000000,     /* 1 ms   */
+>         .sched_deadline = 10000000,     /* 10 ms  */
+>         .sched_period   = 10000000,
+> };
+> ```
+
+**逐欄對照 `__normal_prio()`（`kernel/sched/core.c:2108`）：**
+
+```c
+static inline int __normal_prio(int policy, int rt_prio, int nice)
+{
+	if (dl_policy(policy))       return MAX_DL_PRIO - 1;           /* = -1        */
+	else if (rt_policy(policy))  return MAX_RT_PRIO - 1 - rt_prio; /* = 99-rt_prio */
+	else                         return NICE_TO_PRIO(nice);        /* = nice+120   */
+}
+```
+
+| 欄位 | 實測值 | 怎麼來的 |
+|---|---|---|
+| `policy` | **6** = `SCHED_DEADLINE` | `sched_setattr_nocheck()` 設的 |
+| `normal_prio` | **−1** | `MAX_DL_PRIO(0) − 1` ✅ **公式命中** |
+| `prio` | **−1** | = `normal_prio`（沒有 PI 提升） |
+| `rt_priority` | **0** | DL 行程不用這個欄位 |
+| `static_prio` | **120** | ⚠️ **從沒被 `nice()` 改過的殘留值，對 DL 行程完全無意義** |
+| `se.load.weight` | **1048576** | ⚠️ 同理，CFS 的 `sched_entity` 對 DL 行程也是殘留值 |
+| `se.vruntime` | **0** | ⚠️ **從來沒進過 CFS 紅黑樹，所以是 0** |
+
+最後三列是這一題最好的教材：**`task_struct` 裡「四套調度器的欄位」是並存的
+（`se` / `rt` / `dl`），只有 `p->sched_class` 指到的那一套才有意義。**
+`sugov:0` 的 `se.sum_exec_runtime = 2.47 ms` 有值，是因為
+`update_curr_dl()` 也會累加它（統計用），但 `vruntime` 永遠是 0。
+
+**(c) 從命令列快速看（`ps` 的 `PRI` 是自己換算過的，不等於 `p->prio`）**
 
 ```bash
-ssh radxa@192.168.68.57 'ps -eo pid,cls,pri,rtprio,ni,comm | grep -E "PID|sugov|migration|systemd$" | head -5'
+ssh radxa@192.168.68.57 'ps -eo pid,cls,pri,rtprio,ni,comm | grep -E "PID|migration/0|systemd$"'
 ```
 ```
     PID CLS PRI RTPRIO  NI COMMAND
-      1 TS   19      -   0 systemd     ← ps 的 PRI = 39 - prio/... （ps 自己的換算）
-     38 FF   139     99   - migration/5
-    158 FF   90      50   - sugov:0
+      1  TS  19      -   0 systemd       ← SCHED_OTHER，nice 0
+     15  FF 139     99   - migration/0   ← stop 類，ps 一律顯示成 FF 99
 ```
+`CLS`：`TS`=SCHED_OTHER、`FF`=SCHED_FIFO、`RR`=SCHED_RR、
+**`DLN`=SCHED_DEADLINE**、`B`=SCHED_BATCH、`IDL`=SCHED_IDLE。
+`RTPRIO` 才是 `p->rt_priority`，`NI` 才是 nice；
+`PRI` 是 `ps` 自己算的顯示值（`139 - prio`），**不是** `p->prio`。
 
 **(d) 權重表對帳**（見 ch08 [Q1](./ch08_process_management_scheduling_and_load_balancing.md#q1)）
 
@@ -1536,17 +1603,15 @@ ssh radxa@192.168.68.57 'sudo insmod ~/exp/sched/sched_probe.ko test_irq=1; \
 **(d) 系統照樣正常 —— 直接跑一個死迴圈行程試試**
 
 ```bash
-ssh radxa@192.168.68.57 'taskset -c 3 sh -c "while :; do :; done" & sleep 3
-grep -E "^(cpu3|intr)" /proc/stat | head -1
-cat /proc/interrupts | grep -i "arch_timer" | head -1
-kill %1' 2>/dev/null
+ssh radxa@192.168.68.57 'grep -i arch_timer /proc/interrupts; \
+    taskset -c 3 sh -c "while :; do :; done" & sleep 3; \
+    grep -i arch_timer /proc/interrupts; kill %1' 2>/dev/null
 ```
-```
-cpu3 ... （user time 持續增加）
- 11:  ... 15234567 ... arch_timer   ← 時鐘中斷持續進來
-```
-死迴圈行程並沒有讓 CPU3 的時鐘中斷停止；
-而且 [Q4](#q4) 的實驗顯示它每 3.33 ms 就會被搶佔一次。
+兩次讀數之間 CPU3 的 `arch_timer` 計數持續增加 → 死迴圈行程沒有讓時鐘中斷停止。
+
+更直接的證據在 [Q4](#q4)：在 CPU3 上放 n 個死迴圈行程，
+實測每個行程每 **3.33 ms（= 1 個 tick）** 就被搶佔一次
+（`nivcsw` 與 CPU 時間相除得到），時鐘中斷顯然一直在進來。
 
 ---
 
@@ -1840,12 +1905,18 @@ ssh radxa@192.168.68.57 'sudo insmod ~/exp/sched/sched_probe.ko test_irq=1; \
 **而且系統毫髮無傷** —— `rmmod` 正常、後續指令正常，
 證明「關中斷 + `schedule()`」不會讓系統癱瘓。
 
-**補充實驗：時鐘中斷確實一直在跑**
+**補充：`128` 這個數字是什麼？**
 
-```bash
-ssh radxa@192.168.68.57 'grep arch_timer /proc/interrupts; sleep 2; grep arch_timer /proc/interrupts'
+ARM64 的 `irqs_disabled()` 讀 `DAIF` 的 `I` 位元：
+
+```c
+/* arch/arm64/include/asm/irqflags.h */
+static inline int arch_irqs_disabled_flags(unsigned long flags)
+{
+	return (flags & (PSR_I_BIT | PSR_F_BIT)) == (PSR_I_BIT | PSR_F_BIT) ... ;
+}
 ```
-兩次讀取之間每顆 CPU 的計數都在增加，證明時鐘中斷從未停止。
+`PSR_I_BIT = 1 << 7 = 128`，所以「關中斷」回傳 128、「開中斷」回傳 0。
 
 ---
 

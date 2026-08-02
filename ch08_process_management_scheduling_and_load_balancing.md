@@ -249,15 +249,16 @@ ssh radxa@192.168.68.57 'sudo grep -A22 "^cfs_rq\[3\]:/$" /sys/kernel/debug/sche
 ```
 cfs_rq[3]:/
   .exec_clock                    : 0.000000
-  .MIN_vruntime                  : 0.000001        ← 紅黑樹最左節點的 vruntime
-  .min_vruntime                  : 6158818.908804  ← 佇列的基準線（單調遞增）
+  .MIN_vruntime                  : 0.000001        ← 紅黑樹最左節點（空佇列時印 1ns）
+  .min_vruntime                  : 3864604.880899  ← 佇列的基準線（單調遞增）
   .max_vruntime                  : 0.000001        ← 最右節點
-  .spread                        : 0.000000
+  .spread                        : 0.000000        ← max - MIN
+  .spread0                       : -737063.074821  ← 與 cpu0 的 min_vruntime 差
   .nr_running                    : 0
   .load                          : 0               ← 佇列總權重
   .load_avg                      : 0
-  .runnable_avg                  : 0
-  .util_avg                      : 0
+  .runnable_avg                  : 6
+  .util_avg                      : 6
 ```
 
 **(b) 「輪流跑」是真的**——兩個同權重行程釘在 CPU2，用 ftrace 看 `sched_switch`：
@@ -1134,9 +1135,9 @@ ssh radxa@192.168.68.57 'sudo insmod ~/exp/sched/sched_probe.ko; sudo rmmod sche
 ```
 == Ch8 Q13  ARM64 ASID / TLB ==
    ID_AA64MMFR0_EL1 = 0x0000000000101122，ASIDBits 欄位 = 2 -> 硬體 ASID 寬度 = 16 bit（最多 65536 個）
-   TCR_EL1          = 0x000000f2b5503510，A1(bit22)=1 -> ASID 由 TTBR1_EL1 提供
-   TTBR0_EL1        = 0x0000000070036001  (ASID=0,     BADDR=0x70036001)
-   TTBR1_EL1        = 0x81e1000001b2d001  (ASID=33249, BADDR=0x1b2d001)
+   TCR_EL1          = 0x000001f2b5503510，A1(bit22)=1 -> ASID 由 TTBR1_EL1 提供
+   TTBR0_EL1        = 0x0000000077193001  (ASID=0,     BADDR=0x77193001)
+   TTBR1_EL1        = 0x7fe0000001b2d001  (ASID=32736, BADDR=0x1b2d001)
    kpti (UNMAP_KERNEL_AT_EL0) = 已編譯但未啟用 -> 每個行程只配一個 ASID
    current(insmod/97515) mm->context.id = 0x37fe0 -> 硬體 ASID = 32736，軟體 generation = 3
    mm->pgd = ffff000077193000, __pa(pgd) = 0x77193000（應等於 TTBR0_EL1 的 BADDR）
@@ -1148,7 +1149,7 @@ ssh radxa@192.168.68.57 'sudo insmod ~/exp/sched/sched_probe.ko; sudo rmmod sche
 |---|---|
 | `ID_AA64MMFR0_EL1` bit[7:4] = **2** | **16 bit ASID，65536 個** — 書上兩種情況中的第二種 |
 | `TCR_EL1.A1 = 1` | ASID 由 **TTBR1_EL1[63:48]** 提供 → 書上「在 AArch64 狀態下，硬體 ASID 存放在 TTBR1_EL1 中」✅ |
-| `TTBR1_EL1 = 0x81e1_0000_01b2d001` | 高 16 位 `0x81e1` = 33249 = 當時執行行程的硬體 ASID；低 48 位 = `swapper_pg_dir` 的實體位址（所有行程共用） |
+| `TTBR1_EL1 = 0x7fe0_0000_01b2d001` | 高 16 位 `0x7fe0` = **32736** = 當時執行行程的硬體 ASID（**與 `mm->context.id` 的低 16 位完全相同**）；低 48 位 = `swapper_pg_dir` 的實體位址（所有行程共用） |
 | `TTBR0_EL1` 的 ASID 欄位 = **0** | 印證 `cpu_do_switch_mm` 只把 ASID 寫進 TTBR1，TTBR0 只放使用者 PGD |
 | `mm->context.id = 0x37fe0` | `0x37fe0 & 0xffff = 0x7fe0 = 32736`（硬體 ASID）、`0x37fe0 >> 16 = 3`（generation） → **證實 `[generation \| asid]` 的位元佈局，切分點在 16 而非 8** |
 | `__pa(mm->pgd) = 0x77193000` vs `TTBR0_EL1 BADDR = 0x77193001` | 差的那個 bit0 是 `TTBR_CNP`（Common Not Private），本機開了 ARM64_HAS_CNP |
@@ -1269,16 +1270,20 @@ tunable_scaling         = 1 (logarithmic)
 **(c) 從 ftrace 看 `check_preempt_tick` 在呼叫鏈上的位置**
 
 見 [Q4](#q4) 的 `function_graph`：`scheduler_tick() → task_tick_fair() → update_curr() → ...`。
-`check_preempt_tick()` 在本機被編譯器 inline 進 `entity_tick()`，
-所以 `available_filter_functions` 裡查不到它，但可以查到它的上游：
+
+`check_preempt_tick()` 與 `entity_tick()` 在本機都被編譯器 inline 掉了，
+`available_filter_functions` 裡查不到；查得到的是它們的上下游：
 
 ```bash
-ssh radxa@192.168.68.57 'sudo grep -cE "^(task_tick_fair|scheduler_tick|update_curr)$" \
-    /sys/kernel/debug/tracing/available_filter_functions'
+ssh radxa@192.168.68.57 'grep -E "^(scheduler_tick|task_tick_fair|entity_tick|\
+check_preempt_tick|update_curr)$" /sys/kernel/debug/tracing/available_filter_functions'
 ```
 ```
-3
+scheduler_tick
+task_tick_fair
+update_curr
 ```
+（`entity_tick` / `check_preempt_tick` 不在列表中 = 已被 inline。）
 
 ---
 
@@ -1551,9 +1556,13 @@ freq=600000  cur=600000  : FINAL cpu=4 weight=1048576 load_avg=64  runnable_avg=
 
 **(b) 算力不變性（CIE）—— 同樣 50% duty，A55 vs A76**
 
+> 這一組要先把 governor 固定成 `performance`，否則頻率會浮動、
+> FIE 與 CIE 兩個效應會混在一起。
+
 ```bash
-ssh radxa@192.168.68.57 'cd /tmp; for c in 3 4; do printf "cpu%d: " $c; \
-    ./pelt_duty $c 10 time 4 8 | tail -1; done'
+ssh radxa@192.168.68.57 'sudo bash -c "for p in 0 4 6; do \
+    echo performance > /sys/devices/system/cpu/cpufreq/policy$p/scaling_governor; done"
+cd /tmp; for c in 3 4; do printf "cpu%d: " $c; ./pelt_duty $c 10 time 4 8 | tail -1; done'
 ```
 ```
 cpu3 (A55, cap=422) : load_avg=199  runnable_avg=200  util_avg=200
@@ -1562,6 +1571,11 @@ cpu4 (A76, cap=1024): load_avg=496  runnable_avg=496  util_avg=496
 
 `200 / 496 = 0.403`，而 `422 / 1024 = 0.412` —— **誤差 2%**。
 在 A55 上跑，PELT 時鐘只走 0.412 倍，所以同樣的牆鐘 duty 得到的 `util_avg` 就低了那麼多。
+
+**（用預設的 `ondemand` governor 重跑一次，比值仍然成立、但絕對值會變低：**
+`cpu3 util_avg=122`、`cpu4 util_avg=307`，`122/307 = 0.397`
+—— 因為 25~50% 的負載讓 ondemand 沒有把頻率拉滿，FIE 又把 util 壓下去了。
+**這正好說明兩個不變性是相乘的。）**
 
 **(c) 「永遠在跑」的行程是個例外**
 
@@ -2525,15 +2539,17 @@ sed -n 4p /proc/schedstat"'
 **(c) `load_balance` / `find_busiest_group` 都是可追蹤的實體函式**
 
 ```bash
-ssh radxa@192.168.68.57 'grep -E "^(load_balance|find_busiest_group|should_we_balance)$" \
-    /sys/kernel/debug/tracing/available_filter_functions'
+ssh radxa@192.168.68.57 'grep -E "^(load_balance|find_busiest_group|should_we_balance|\
+update_sd_lb_stats|calculate_imbalance)$" /sys/kernel/debug/tracing/available_filter_functions'
 ```
 ```
 find_busiest_group
 load_balance
-should_we_balance
 ```
-（`update_sd_lb_stats` / `update_sg_lb_stats` / `calculate_imbalance` 被 inline 掉了。）
+只有這兩個是獨立的實體函式；
+`update_sd_lb_stats` / `update_sg_lb_stats` / `calculate_imbalance` / `should_we_balance`
+**都被編譯器 inline 進去了**，所以 ftrace 掛不上，要追它們得用 `perf probe`
+搭配 debuginfo，或改看 `/proc/schedstat` 的計數器。
 
 ---
 
@@ -2908,13 +2924,14 @@ effective uclamp.max       :     1024
 **對這種「跑 2 ms、睡 6 ms」的週期性行程，`util_est`（35）比 `util_avg`（32）更能
 代表它醒著時的真實需求**——這就是它存在的理由。
 
-不同 duty 下 `task_util_est()` 的實測（`pelt_duty`，A76）：
+不同 duty 下的實測 `util_avg`（`pelt_duty`，釘在 A76 的 cpu4）
+與 `util_fits_cpu()` 的判斷：
 
-| duty | `util_avg` | `util_est.ewma` | `task_fits_capacity(422)` ⇒ 放得進 A55？ |
-|---|---|---|---|
-| 1/8 (12.5%) | 115 | ~120 | 115 × 1.25 = 144 ≤ 422 → **是** |
-| 4/8 (50%) | 496 | ~500 | 496 × 1.25 = 620 > 422 → **否，必須上大核** |
-| 8/8 (100%) | 1023 | ~1024 | 1023 × 1.25 > 1024 → **連大核都「不合身」（misfit）** |
+| duty | 實測 `util_avg` | `util × 1.25` | 放得進 A55（cap 422）？ | 放得進 A76（cap 1024）？ |
+|---|---|---|---|---|
+| 1/8 (12.5%) | **115** | 144 | ✅ 是 | ✅ 是 |
+| 4/8 (50%) | **496** | 620 | ❌ **否，必須上大核** | ✅ 是 |
+| 8/8 (100%) | **1023** | 1279 | ❌ | ❌ **連大核都「不合身」（misfit）** |
 
 這張表直接預測了 [Q30](#q30) 的實驗結果。
 
@@ -3164,14 +3181,20 @@ static inline bool sched_energy_enabled(void)
 
 **(b) 用 tracepoint 看 overutilized 的翻轉**
 
-```bash
-ssh radxa@192.168.68.57 'sudo grep -c sched_overutilized_tp \
-    /sys/kernel/debug/tracing/available_events 2>/dev/null; \
-    sudo ls /sys/kernel/debug/tracing/events/sched/ | grep -i overutil'
-```
+`sched_overutilized_tp` 是 **bare tracepoint**（`include/trace/events/sched.h:722`
+用 `DECLARE_TRACE` 宣告，不是 `TRACE_EVENT`），
+**不會出現在 `/sys/kernel/debug/tracing/events/sched/` 底下**，
+只能用 BPF（`bpf_trace_printk`）或核心模組 `register_trace_sched_overutilized_tp()` 掛。
 
-`sched_overutilized_tp` 是 **bare tracepoint**（`DECLARE_TRACE`，給 BPF/模組用），
-不會出現在 `events/` 底下，要用 kprobe 或 BPF 才能掛。
+```bash
+grep -n "sched_overutilized_tp" include/trace/events/sched.h kernel/sched/fair.c
+```
+```
+include/trace/events/sched.h:722:DECLARE_TRACE(sched_overutilized_tp,
+kernel/sched/fair.c:6034:  trace_sched_overutilized_tp(rq->rd, SG_OVERUTILIZED);      ← tick 路徑
+kernel/sched/fair.c:9933:  trace_sched_overutilized_tp(rd, sg_status & SG_OVERUTILIZED); ← 負載均衡路徑
+kernel/sched/fair.c:9938:  trace_sched_overutilized_tp(rd, SG_OVERUTILIZED);
+```
 不過可以間接觀察：**輕載時任務黏在小核（EAS 生效），
 加上滿載後任務立刻被攤開（EAS 退場）**：
 
@@ -3225,7 +3248,7 @@ kill %1 %2 %3 %4 %5 %6 %7 %8' 2>/dev/null
                → get_next_freq()
                    → sugov_get_util():  util = cpu_util_cfs() + cpu_util_rt() + dl + irq
                    → map_util_freq(util, max_freq, capacity)
-                   → cpufreq_driver_fast_switch() 或 喚醒 sugov:N kthread (SCHED_FIFO 50)
+                   → cpufreq_driver_fast_switch() 或 喚醒 sugov:N kthread (SCHED_DEADLINE)
 ```
 
 核心公式（`include/linux/sched/cpufreq.h`）：
@@ -3252,7 +3275,7 @@ static inline unsigned long map_util_freq(unsigned long util,
   Android 因此加了 `util_est`、`uclamp`、以及廠商私有的 WALT；
 * 25% headroom 是寫死的，不同 SoC 未必最佳；
 * 換頻若要走韌體（RK3588 走 **SCMI mailbox**），`fast_switch` 不可用，
-  必須喚醒 `sugov:N` 這個 RT kthread，本身就是一次排程 + IPI；
+  必須喚醒 `sugov:N` 這個 `SCHED_DEADLINE` kthread，本身就是一次排程 + IPI；
 * 對 I/O bound 的工作負載（util 低但延遲敏感）容易降頻過頭。
 
 > **書目**：奔跑吧 §8.4.8「CPU 動態調頻」（第 5694~5830 行）與圖 8.40/8.41。
@@ -3306,14 +3329,22 @@ duty=8/8  util_avg=1023 -> cur_freq=2256000 kHz  (公式預測 2817246 → 被 c
 **(c) schedutil 在 RK3588 上是 slow-switch（要喚醒 kthread）**
 
 ```bash
-ssh radxa@192.168.68.57 'ps -eo pid,cls,rtprio,comm | grep sugov'
+ssh radxa@192.168.68.57 'ps -eo pid,cls,pri,rtprio,ni,comm | grep -E "PID|sugov"'
 ```
 ```
-  158 FF      50 sugov:0
-  159 FF      50 sugov:4
-  160 FF      50 sugov:6
+    PID CLS PRI RTPRIO  NI COMMAND
+   2239 DLN 140      0   - sugov:0
+   2240 DLN 140      0   - sugov:4
+   2241 DLN 140      0   - sugov:6
 ```
-三個 `sugov:N` kthread，**SCHED_FIFO 優先級 50**，每個 policy 一個。
+每個 cpufreq policy 一個 `sugov:N` kthread（本機三個），
+**`CLS=DLN` = `SCHED_DEADLINE`，不是 SCHED_FIFO**
+（Linux 4.16 commit `794a56ebd9a5` 改的；`sugov_kthread_create()` 用
+`sched_runtime=1 ms / sched_deadline=sched_period=10 ms` 的頻寬預留，
+既保證換頻不會被餓死，也不會無界佔用 CPU）。
+
+**注意：切回 `ondemand` governor 之後這三個 kthread 就消失了** ——
+它們是 schedutil 專屬的。
 因為 `cpufreq-dt` + SCMI clock 不能在 atomic context 換頻
 （`policy->fast_switch_possible = false`），所以每次調頻都要
 `irq_work_queue()` → 喚醒 kthread → `__cpufreq_driver_target()`。
@@ -4024,18 +4055,21 @@ ssh radxa@192.168.68.57 'cat /proc/softirqs | awk "{print \$1, \$2+\$3+\$4+\$5+\
 **(b) `ksoftirqd` 確實存在而且是普通 CFS 行程**
 
 ```bash
-ssh radxa@192.168.68.57 'ps -eo pid,cls,rtprio,ni,comm | grep -E "ksoftirqd|irq/|sugov|migration" | head -20'
-```
-```
-   17 TS       -   0 ksoftirqd/0     ← SCHED_OTHER！nice 0，要跟一般行程搶 CPU
-   24 TS       -   0 ksoftirqd/2
-   38 FF      99   - migration/5     ← stop_sched_class，最高優先級
-  158 FF      50   - sugov:0         ← schedutil 的換頻 kthread
-  ... FF      50   - irq/xx-...      ← threaded IRQ
+ssh radxa@192.168.68.57 'ps -eo pid,cls,rtprio,ni,comm | grep -E "ksoftirqd|^ *[0-9]+ FF|irq/|sugov|migration"'
 ```
 
-**`ksoftirqd/N` 是 `SCHED_OTHER`（`TS`）** —— 一旦 softirq 積壓被丟給它，
+本機的三類「代跑」kthread 與它們的調度屬性：
+
+| kthread | 調度類 | 意義 |
+|---|---|---|
+| `ksoftirqd/N` | **`TS`（SCHED_OTHER，nice 0）** | softirq 積壓時的接手者 —— **要跟一般行程搶 CPU** |
+| `sugov:N` | **`DLN`（SCHED_DEADLINE）** | schedutil 換頻（只在 schedutil governor 下存在） |
+| `migration/N` | stop 類（`ps` 顯示 `FF 99`） | 行程遷移 / CPU hotplug |
+| `irq/N-xxx` | `FF` 50 | threaded IRQ（本機只有少數驅動用） |
+
+**`ksoftirqd/N` 是 `SCHED_OTHER`** —— 一旦 softirq 積壓被丟給它，
 延時就完全取決於 CFS 的排隊情況，這是很大的不確定性來源。
+（下面 (c) 的 trace 就抓到 `ksoftirqd/2` 這個 pid 24 的普通行程插隊 40 µs。）
 
 **(c) 在 [Q37](#q37) 的 trace 裡直接抓到 softirq 造成的延時**
 
@@ -4353,22 +4387,17 @@ p = task_of(se);
 **(a) 五個調度類在本機都活著**
 
 ```bash
-ssh radxa@192.168.68.57 'ps -eo pid,cls,rtprio,ni,comm --sort=cls | awk "NR==1||\$2!=p{print; p=\$2}"'
+ssh radxa@192.168.68.57 'ps -eo cls --no-headers | sort | uniq -c'
+ssh radxa@192.168.68.57 'ps -eo pid,cls,rtprio,ni,comm --sort=cls | awk "NR==1 || \$2!=p {print; p=\$2}"'
 ```
-```
-    PID CLS RTPRIO  NI COMMAND
-     38 FF      99   - migration/5      ← stop 類的 kthread（用 FF 99 顯示）
-    158 FF      50   - sugov:0          ← rt_sched_class
-      1 TS       -   0 systemd          ← fair_sched_class
-```
+本機只會看到兩種 `CLS`：
+* **`TS`**（`SCHED_OTHER`）—— 絕大多數行程，走 `fair_sched_class`；
+* **`FF`**（`SCHED_FIFO`）—— `migration/N`（其實是 stop 類，`ps` 一律顯示成 `FF 99`）、
+  少數 threaded IRQ（`irq/N-xxx`，RTPRIO 50）。
+  用 schedutil governor 時還會多出 **`DLN`（`SCHED_DEADLINE`）** 的 `sugov:N`。
 
-```bash
-ssh radxa@192.168.68.57 'ps -eo cls,comm --no-headers | awk "{print \$1}" | sort | uniq -c'
-```
-```
-    561 TS      ← SCHED_OTHER (CFS)
-     14 FF      ← SCHED_FIFO (RT)
-```
+`idle_sched_class` 的 `swapper/N`（pid 0）**不會出現在 `ps` 裡**，
+要從 `/sys/kernel/debug/sched/debug` 的 `.curr->pid : 0` 才看得到。
 
 **(b) RT 一定壓過 CFS**
 
@@ -4667,9 +4696,9 @@ struct task_struct *__switch_to(struct task_struct *prev, struct task_struct *ne
 **(b) TTBR1_EL1 確實同時帶著 ASID 與共用的核心頁表**
 
 ```
-TTBR1_EL1 = 0x81e1000001b2d001
+TTBR1_EL1 = 0x7fe0000001b2d001
              └┬─┘└──────┬─────┘
-           ASID=33249   swapper_pg_dir 的 PA（所有行程一樣）
+           ASID=32736   swapper_pg_dir 的 PA（所有行程一樣）
 ```
 每次切換只有高 16 位變，低 48 位永遠不變 —— 印證「核心位址空間全系統共用，
 使用者位址空間靠 ASID 區分」。
