@@ -2,7 +2,7 @@
 
 本目錄收錄《奔跑吧 Linux內核》（第二版）卷1 基礎架構 各章節開篇之「本章的高頻面試題」，共計 245 道題目。
 
-## 📚 章節目錄索引
+## 📚 卷1 章節目錄索引 (基礎架構 245 題)
 
 1. 📖 [第 1 章 處理器架構 (34 題)](file:///home/awe/disk/linux-rockchip/notes/ch01_processor_architecture.md)
 2. 📖 [第 2 章 ARM64 在 Linux 內核中的實現 (23 題)](file:///home/awe/disk/linux-rockchip/notes/ch02_arm64_in_linux_kernel.md)
@@ -15,14 +15,33 @@
 9. 📖 [第 9 章 進程管理之調試與案例分析 (13 題)](file:///home/awe/disk/linux-rockchip/notes/ch09_process_management_debugging_and_case_studies.md)
 
 ---
-* 📄 [彙整單檔 (全部 245 題)](file:///home/awe/disk/linux-rockchip/notes/running_linux_kernel_v1_interview_questions.md)
+* 📄 [卷 1 彙整單檔 (全部 245 題)](file:///home/awe/disk/linux-rockchip/notes/running_linux_kernel_v1_interview_questions.md)
 
 ---
 
+## 📚 卷2 章節目錄索引 (調試與案例分析 95 題)
+
+1. 📖 [第 1 章 (全書第10章) 併發與同步 (37 題)](file:///home/awe/disk/linux-rockchip/notes/ch10_concurrency_and_synchronization.md)
+2. 📖 [第 2 章 (全書第11章) 中斷管理 (15 題)](file:///home/awe/disk/linux-rockchip/notes/ch11_interrupt_management.md)
+3. 📖 [第 3 章 (全書第12章) 內核調試與性能優化 (14 題)](file:///home/awe/disk/linux-rockchip/notes/ch12_kernel_debugging_and_performance_optimization.md)
+4. 📖 [第 4 章 (全書第13章) 基於 x86_64 解決宕機難題 (13 題)](file:///home/awe/disk/linux-rockchip/notes/ch13_x86_64_crash_debugging.md)
+5. 📖 [第 5 章 (全書第14章) 基於 ARM64 解決宕機難題 (7 題)](file:///home/awe/disk/linux-rockchip/notes/ch14_arm64_crash_debugging.md)
+6. 📖 [第 6 章 (全書第15章) 安全漏洞分析 (9 題)](file:///home/awe/disk/linux-rockchip/notes/ch15_security_vulnerabilities.md)
+
+---
+* 📄 [卷 2 彙整單檔 (全部 95 題)](file:///home/awe/disk/linux-rockchip/notes/running_linux_kernel_v2_interview_questions.md)
+
+---
+
+
 ## ✅ 解答（含 RK3588 實機實驗）
 
-以下解答皆在 **Radxa ROCK 5B（RK3588, `192.168.68.57`, Linux 6.1.115+ aarch64, 8GB）**
-上實測，每一題都標註了**書目出處**與**下給機台的指令 + 實際輸出**。
+以下解答皆在 **Radxa ROCK 5B（RK3588, Linux 6.1.115+ aarch64, 8GB）** 上實測，
+每一題都標註了**書目出處**與**下給機台的指令 + 實際輸出**。
+
+> ⚠ 機台走 DHCP，IP 會變（本文成稿期間出現過 `192.168.68.57` 與 `192.168.68.58`）。
+> 連不上時先做一次區網掃描確認：
+> `for i in $(seq 1 254); do (ping -c1 -W1 192.168.68.$i >/dev/null 2>&1 && echo 192.168.68.$i) & done`
 
 | 章節 | 解答檔 | 題數 | 亮點 |
 |------|--------|------|------|
@@ -33,6 +52,7 @@
 | 第 6 章 | 📝 [ch06_memory_management_case_studies.md](./ch06_memory_management_case_studies.md) | 14 | MemTotal 差值 **259092 kB 逐項對帳成功**；LRU 恆等式**完全吻合**；`MADV_PAGEOUT` 直接證明 shmem 不計入 `VmSwap`；抓到 **watermark boost 正在生效且已飽和（6463 頁）** |
 | 第 7 章 | 📝 [ch07_process_management_basic_concepts.md](./ch07_process_management_basic_concepts.md) | 15 | strace 抓出 fork/vfork/pthread 的 clone flags；**16384 次 COW 缺頁精準命中**；VmPTE 逐級變化證明頁表按需配置；ftrace 抓到 **`schedule_tail <-ret_from_fork`**；fork 輸出 **6 vs 8 兩種答案都重現** |
 | 第 8 章 | 📝 [ch08_process_management_scheduling_and_load_balancing.md](./ch08_process_management_scheduling_and_load_balancing.md) | 45 | **Δvruntime/Δexec = 3.0567 = 1024/335 一位不差**；時間片實測全部命中 `__sched_period()`（n≤8→24 ms、n>8→n×3 ms）；模組算出 **`LOAD_AVG_MAX = 47742`** 與核心相同；**頻率不變性 2256/1200/600 MHz → util 243/131/64**；**算力不變性 A55/A76 = 0.403 vs 422/1024**；`cost = power×fmax/f` **19 個 OPP 全部對帳**；**切成 schedutil 後 dmesg 噴出「starting EAS」**，輕載 100% 落 A55、關掉 EAS 後 73% 跑上 A76；**ftrace 抓出 `kworker/u16` 讓 SCHED_FIFO 行程等了 10 ms**。**修正 12 處 5.0→6.1 的差異** |
+| 卷2 第 1 章 | 📝 [ch10_concurrency_and_synchronization.md](./ch10_concurrency_and_synchronization.md) | 37 | **從記憶體讀出被 alternatives patch 過的指令**，8 種原子操作全部對應到 LSE（`stadd`/`ldaddal`/`casal`/`casa`/`casl`/`cas`/`swpal`）；**LL/SC vs LSE 大小核實測推翻「LSE 一定比較快」**（A55 上 LSE 慢 1.8 倍、A76 激烈爭用時慢 3.5 倍）；qspinlock 三元組狀態機完整重現 `{0,0,1}→{0,1,1}→{CPU2,..}→{CPU3,..}` 且**證明嚴格 FIFO**（三個競爭者相隔 200 µs 依序接棒）；**樂觀自旋 34444 次拿鎖只睡 2 次 vs 645 次拿鎖睡 1156 次**；`synchronize_rcu()` **43.7 ms vs expedited 54 µs（810 倍）**；ftrace 抓到 GP 狀態機與 `qsmask` 位圖 `8>f7→2>f5→1>f4→f4>0`；**修正書上表 1.4 的 pending 位寬**。附「我把機器鎖死」的死鎖活教材 |
 | 第 9 章 | 📝 [ch09_process_management_debugging_and_case_studies.md](./ch09_process_management_debugging_and_case_studies.md) | 13 | **`/proc/sched_debug` 與 `sched_latency_ns` 全部搬到 debugfs**（書上路徑已失效）；`latency_ns=24 ms / min_granularity_ns=3 ms`，**臨界點 nr_running=8 實測命中**；**RK3588 只有 1 層 MC 域、8 個單 CPU 調度組**（與書上兩層拓撲不同）；書上 §9.2 場景重現：**5 個行程 200 ms 內收斂成 3/2**；**關中斷後 `schedule()` 回來 `irqs_disabled()` 從 128 變 0** |
 
 ### 實驗程式
@@ -47,6 +67,9 @@
 | `mm_convert.c` | 把 mm/VMA/page/PFN/paddr/PTE/zone/pgdat 的九種轉換全部跑一遍 | **3-3** |
 | `mm_probe.c` | 伙伴系統 free_area（66 條鏈）、gfp_zone 表、zonelist、水位、SLUB、`page->flags` 佈局、外碎片指標 | **4-1~4-7, 4-18, 5-4, 5-38, 5-42~5-47** |
 | `sched_probe.c` | 權重/wmult 表對帳、`__calc_delta()`、PELT 衰減表與 `LOAD_AVG_MAX`、**ARM64 ASID**、`cpu_context` 佈局、行程優先級欄位、**關中斷後 `schedule()`**、原子上下文檢查 | **8-1, 8-3, 8-7, 8-13, 8-19, 8-20, 8-28, 8-43~8-45, 9-7, 9-9, 9-11~9-13** |
+| `sync_probe.c` | **把 alternatives patch 後的指令從記憶體讀出來**（LSE/屏障/`smp_cond_load`）、qspinlock 欄位、MCS/OSQ、mutex/rwsem/semaphore 結構、`ULONG_CMP`、`PG_locked` | **卷2 1-1~1-9, 1-11~1-15, 1-17~1-19, 1-22, 1-23, 1-25, 1-26, 1-31, 1-35** |
+| `lock_bench.c` | qspinlock 三元組狀態機、六種同步機制吞吐量對比、樂觀自旋 vs 睡眠等待 | **卷2 1-10, 1-12, 1-16, 1-20, 1-21, 1-25, 1-27, 1-33** |
+| `rcu_demo.c` | 書上 §1.10.1 讀者/寫者範例、GP 延遲量測、`SLAB_TYPESAFE_BY_RCU`、RCU 停滯偵測 | **卷2 1-27~1-30, 1-32, 1-36** |
 | `Makefile.mod` | 兩個模組的 Kbuild Makefile（上傳時改名為 `Makefile`） | — |
 
 **使用者態程式**：
@@ -81,6 +104,7 @@
 | `vruntime_place.c` | `place_entity()` 的 START_DEBIT 與 GENTLE_FAIR_SLEEPERS | **8-5, 8-6** |
 | `rt_latency.c` | 迷你 cyclictest：SCHED_OTHER vs SCHED_FIFO、空閒 vs 滿載的喚醒延時 | **8-36~8-40** |
 | `sched_trace.sh` | ftrace 腳本（switch / newtask / tick / wakeup / balance） | **8-4, 8-9~8-12, 8-41, 9-5, 9-8~9-11** |
+| `lse_bench.c` | LL/SC vs LSE 原子指令吞吐量（可指定大核/小核） | **卷2 1-1** |
 
 一鍵在機台上建置：
 
