@@ -54,6 +54,7 @@
 | 第 8 章 | 📝 [ch08_process_management_scheduling_and_load_balancing.md](./ch08_process_management_scheduling_and_load_balancing.md) | 45 | **Δvruntime/Δexec = 3.0567 = 1024/335 一位不差**；時間片實測全部命中 `__sched_period()`（n≤8→24 ms、n>8→n×3 ms）；模組算出 **`LOAD_AVG_MAX = 47742`** 與核心相同；**頻率不變性 2256/1200/600 MHz → util 243/131/64**；**算力不變性 A55/A76 = 0.403 vs 422/1024**；`cost = power×fmax/f` **19 個 OPP 全部對帳**；**切成 schedutil 後 dmesg 噴出「starting EAS」**，輕載 100% 落 A55、關掉 EAS 後 73% 跑上 A76；**ftrace 抓出 `kworker/u16` 讓 SCHED_FIFO 行程等了 10 ms**。**修正 12 處 5.0→6.1 的差異** |
 | 卷2 第 1 章 | 📝 [ch10_concurrency_and_synchronization.md](./ch10_concurrency_and_synchronization.md) | 37 | **從記憶體讀出被 alternatives patch 過的指令**，8 種原子操作全部對應到 LSE（`stadd`/`ldaddal`/`casal`/`casa`/`casl`/`cas`/`swpal`）；**LL/SC vs LSE 大小核實測推翻「LSE 一定比較快」**（A55 上 LSE 慢 1.8 倍、A76 激烈爭用時慢 3.5 倍）；qspinlock 三元組狀態機完整重現 `{0,0,1}→{0,1,1}→{CPU2,..}→{CPU3,..}` 且**證明嚴格 FIFO**（三個競爭者相隔 200 µs 依序接棒）；**樂觀自旋 34444 次拿鎖只睡 2 次 vs 645 次拿鎖睡 1156 次**；`synchronize_rcu()` **43.7 ms vs expedited 54 µs（810 倍）**；ftrace 抓到 GP 狀態機與 `qsmask` 位圖 `8>f7→2>f5→1>f4→f4>0`；**修正書上表 1.4 的 pending 位寬**。附「我把機器鎖死」的死鎖活教材 |
 | 第 9 章 | 📝 [ch09_process_management_debugging_and_case_studies.md](./ch09_process_management_debugging_and_case_studies.md) | 13 | **`/proc/sched_debug` 與 `sched_latency_ns` 全部搬到 debugfs**（書上路徑已失效）；`latency_ns=24 ms / min_granularity_ns=3 ms`，**臨界點 nr_running=8 實測命中**；**RK3588 只有 1 層 MC 域、8 個單 CPU 調度組**（與書上兩層拓撲不同）；書上 §9.2 場景重現：**5 個行程 200 ms 內收斂成 3/2**；**關中斷後 `schedule()` 回來 `irqs_disabled()` 從 128 變 0** |
+| 卷2 第 2 章 | 📝 [ch11_interrupt_management.md](./ch11_interrupt_management.md) | 15 | 用 kprobe + `get_irq_regs()` **抓下真實中斷的 `pt_regs`**：使用者態被打斷時 `pc=0xaaaae6faad0c`、`sp` 是 user stack、`stackframe={0,0}`，`&pt_regs` 距核心棧頂**剛好 336 B = `sizeof(pt_regs)`**；**VBAR_EL1 不是 `vectors` 而是 `__bp_harden_el1_vectors`**（Spectre-BHB 副本）；**PSTATE.M=EL2h → 這台機器的核心跑在 EL2（VHE）**；**TRM #237 `irq_emmc` → DTB `<0 205 4>` → hwirq 237 → virq 160** 四層對帳（重開機後 **virq 變成 171 而 hwirq 不變**，證明 virq 是每次開機重配的）；**8 顆 CPU 的中斷棧位址實測**（4526 次中斷、每 CPU 一段、間隔 0x8000）；tasklet 忙等 30 ms **收到 10 次時鐘中斷**＋ftrace `d.H..` 旗標；**同類軟中斷 8 CPU 並行 vs 同一 tasklet 恆為 1**；**行程被軟中斷卡住 40009218 ns**；`local_bh_enable` 的 **`preempt_count=0x101`「留 1」看得見**；CMWQ **6 個睡 300 ms 的 work 只花 316 ms、kworker 6→10** vs 燒 CPU 的 **1 個 worker 360 ms**。**修正 14 處 5.0/GIC-V2/QEMU → 6.1/GIC-600/實機的差異**。**全部實驗重開機後完整重跑驗證過**（25 項指標 24 項完全重現，唯一差異揭露「virq 每次開機重配、hwirq 不變」） |
 
 ### 實驗程式
 
@@ -105,6 +106,19 @@
 | `rt_latency.c` | 迷你 cyclictest：SCHED_OTHER vs SCHED_FIFO、空閒 vs 滿載的喚醒延時 | **8-36~8-40** |
 | `sched_trace.sh` | ftrace 腳本（switch / newtask / tick / wakeup / balance） | **8-4, 8-9~8-12, 8-41, 9-5, 9-8~9-11** |
 | `lse_bench.c` | LL/SC vs LSE 原子指令吞吐量（可指定大核/小核） | **卷2 1-1** |
+
+**中斷管理（卷2 第 2 章）用的模組與腳本**：
+
+| 檔案 | 用途 | 題目 |
+|------|------|------|
+| `irq_probe.c` | 從 VBAR_EL1 dump 異常向量表、`pt_regs` 欄位偏移、`preempt_count` 佈局、中斷棧大小、掃描全部 `irq_desc`（virq↔hwirq↔chip↔domain↔action） | **卷2 2-1~2-4, 2-7, 2-14, 2-15** |
+| `irq_live.c` | kprobe + `get_irq_regs()` 抓**真實中斷現場**；`stackmap=1` 統計每 CPU 中斷棧位址 | **卷2 2-1~2-4, 2-14, 2-15** |
+| `ctx_probe.c` | 八種執行環境的上下文指紋表、tasklet 忙等期間數硬體中斷、軟中斷 vs 行程優先級、work 回呼裡 `msleep()` | **卷2 2-4, 2-5, 2-7, 2-8, 2-10** |
+| `softirq_par.c` | 同類軟中斷多 CPU 並行 vs 同一 tasklet 串行化，重現書上 CPU0/CPU1 時序 | **卷2 2-6, 2-9** |
+| `wq_probe.c` | CMWQ worker pool 動態伸縮、`alloc_ordered_workqueue`、`max_active` | **卷2 2-10~2-13** |
+| `ksym.h` | 用 kprobe 取回 `kallsyms_lookup_name()`，解析未 EXPORT 的 `irq_to_desc()` / `irq_work_queue_on()` | 共用 |
+| `irq_trace.sh` | ftrace 腳本（中斷呼叫鏈 / softirq / workqueue / `/proc/interrupts`↔DTB 對帳） | **卷2 2-3, 2-5, 2-7, 2-11** |
+| `irq_rerun_all.sh` | 把上述 21 個實驗步驟串成一支（含重新編譯與自動還原），用來做重開機重跑驗證 | 卷2 第 2 章全部 |
 
 一鍵在機台上建置：
 
