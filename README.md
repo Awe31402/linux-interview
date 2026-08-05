@@ -55,6 +55,10 @@
 | 卷2 第 1 章 | 📝 [ch10_concurrency_and_synchronization.md](./ch10_concurrency_and_synchronization.md) | 37 | **從記憶體讀出被 alternatives patch 過的指令**，8 種原子操作全部對應到 LSE（`stadd`/`ldaddal`/`casal`/`casa`/`casl`/`cas`/`swpal`）；**LL/SC vs LSE 大小核實測推翻「LSE 一定比較快」**（A55 上 LSE 慢 1.8 倍、A76 激烈爭用時慢 3.5 倍）；qspinlock 三元組狀態機完整重現 `{0,0,1}→{0,1,1}→{CPU2,..}→{CPU3,..}` 且**證明嚴格 FIFO**（三個競爭者相隔 200 µs 依序接棒）；**樂觀自旋 34444 次拿鎖只睡 2 次 vs 645 次拿鎖睡 1156 次**；`synchronize_rcu()` **43.7 ms vs expedited 54 µs（810 倍）**；ftrace 抓到 GP 狀態機與 `qsmask` 位圖 `8>f7→2>f5→1>f4→f4>0`；**修正書上表 1.4 的 pending 位寬**。附「我把機器鎖死」的死鎖活教材 |
 | 第 9 章 | 📝 [ch09_process_management_debugging_and_case_studies.md](./ch09_process_management_debugging_and_case_studies.md) | 13 | **`/proc/sched_debug` 與 `sched_latency_ns` 全部搬到 debugfs**（書上路徑已失效）；`latency_ns=24 ms / min_granularity_ns=3 ms`，**臨界點 nr_running=8 實測命中**；**RK3588 只有 1 層 MC 域、8 個單 CPU 調度組**（與書上兩層拓撲不同）；書上 §9.2 場景重現：**5 個行程 200 ms 內收斂成 3/2**；**關中斷後 `schedule()` 回來 `irqs_disabled()` 從 128 變 0** |
 | 卷2 第 2 章 | 📝 [ch11_interrupt_management.md](./ch11_interrupt_management.md) | 15 | 用 kprobe + `get_irq_regs()` **抓下真實中斷的 `pt_regs`**：使用者態被打斷時 `pc=0xaaaae6faad0c`、`sp` 是 user stack、`stackframe={0,0}`，`&pt_regs` 距核心棧頂**剛好 336 B = `sizeof(pt_regs)`**；**VBAR_EL1 不是 `vectors` 而是 `__bp_harden_el1_vectors`**（Spectre-BHB 副本）；**PSTATE.M=EL2h → 這台機器的核心跑在 EL2（VHE）**；**TRM #237 `irq_emmc` → DTB `<0 205 4>` → hwirq 237 → virq 160** 四層對帳（重開機後 **virq 變成 171 而 hwirq 不變**，證明 virq 是每次開機重配的）；**8 顆 CPU 的中斷棧位址實測**（4526 次中斷、每 CPU 一段、間隔 0x8000）；tasklet 忙等 30 ms **收到 10 次時鐘中斷**＋ftrace `d.H..` 旗標；**同類軟中斷 8 CPU 並行 vs 同一 tasklet 恆為 1**；**行程被軟中斷卡住 40009218 ns**；`local_bh_enable` 的 **`preempt_count=0x101`「留 1」看得見**；CMWQ **6 個睡 300 ms 的 work 只花 316 ms、kworker 6→10** vs 燒 CPU 的 **1 個 worker 360 ms**。**修正 14 處 5.0/GIC-V2/QEMU → 6.1/GIC-600/實機的差異**。**全部實驗重開機後完整重跑驗證過**（25 項指標 24 項完全重現，唯一差異揭露「virq 每次開機重配、hwirq 不變」） |
+<<<<<<< Updated upstream
+=======
+| 卷2 第 3 章 | 📝 [ch12_kernel_debugging_and_performance_optimization.md](./ch12_kernel_debugging_and_performance_optimization.md) | 14 | 同一函式 **-O0 是 37 條指令／6 個變數全在堆疊，-O2 是 18 條／0 個**，-O2 行號表**同一位址 0x8 掛了 9 個行號**（游標亂跳的真身），且 **-O0 在本機真的編不過**（`asm goto` 約束失敗）；**U-Boot `kernel_addr_r=0x00400000` → `/proc/iomem` → `_stext=0xffff800008010000`** 三個位址一路對上，DTB/initrd 位址也對上；把機器碼搬家後 **`adr`/`bl` 跟著走、`ldr x0,=sym` 文風不動**；重定位三連拍：使用者態 PIE 的 `R_AARCH64_RELATIVE addend=e18`、vmlinux **262510 筆**、模組把 `bl 0 <_printk>` **就地改寫成 `95fbdf99`**；樹外 `TRACE_EVENT()` 不重編核心就長出 `events/tp_lab/`，並拍到 **static key 把 `d503201f`(NOP) 改成 `14000002`(B)**；不改 cmdline 用私有 kmem_cache 重現 slub_debug **五種錯誤全部**；**沒有 lockdep 的機器上量死鎖**：AA 自旋鎖 500 ms 內 trylock 失敗 **92,897,122 次**、AA mutex 睡死 4.17 秒且**被 SIGKILL 叫醒後竟「假裝」拿到了鎖**（附 `mutex.c:689` 原始碼解釋）、書上 `cancel_delayed_work_sync` 死鎖**完整重現**（`dl_book` 進 D 狀態，堆疊正是 `__flush_work → __cancel_work_timer`）；真 oops 的 **ESR `0x96000044`(寫) vs `0x96000004`(讀)**、`Code:` 行 → `decodecode` → `faddr2line` 直指 **oops_lab.c:46** |
+>>>>>>> Stashed changes
 
 ### 實驗程式
 
@@ -120,6 +124,31 @@
 | `irq_trace.sh` | ftrace 腳本（中斷呼叫鏈 / softirq / workqueue / `/proc/interrupts`↔DTB 對帳） | **卷2 2-3, 2-5, 2-7, 2-11** |
 | `irq_rerun_all.sh` | 把上述 21 個實驗步驟串成一支（含重新編譯與自動還原），用來做重開機重跑驗證 | 卷2 第 2 章全部 |
 
+<<<<<<< Updated upstream
+=======
+
+**內核調試與性能優化（卷2 第 3 章）用的模組與程式**：
+
+| 檔案 | 用途 | 題目 |
+|------|------|------|
+| `opt_lab.c` + `opt_build.sh` | 同一份程式碼用 -O0/-O1/-O2/-Os 各編一次，比指令數/堆疊框/內聯/DWARF 變數位置/行號表；`-DO0_BREAK` 重現「-O0 編不動內核」 | **卷2 3-1** |
+| `pic_asm.S` + `pic_demo.c` | 把一段機器碼 memcpy 到別的位址再執行，量 PIC（`adr`/`bl`/`adrp`）與非 PIC（`ldr x0,=sym`/`blr`）的差異；PIE 的 `.rela.dyn` | **卷2 3-2~3-5** |
+| `addr_probe.c` | 印出核心的鏈接/加載/運行地址、`KIMAGE_VADDR`、`kimage_voffset`、`kaslr_offset()`、各段實體位址、模組與 `_stext` 的距離 | **卷2 3-2, 3-5, 3-7** |
+| `reloc_mod.c` | 模組重定位「前 vs 後」：`objdump -dr` 的留白 + relocation entry ↔ 記憶體裡填好的 `adrp`/`bl` | **卷2 3-4** |
+| `tp_lab.c` + `tp_lab_trace.h` | 樹外 `TRACE_EVENT()`／`TRACE_EVENT_CONDITION()`、`register_trace_*()` probe、dump 出 static key 的 NOP↔B 改寫 | **卷2 3-8** |
+| `slub_lab.c` | 私有 kmem_cache 帶 `SLAB_RED_ZONE/POISON/STORE_USER/CONSISTENCY_CHECKS`（= `slub_debug=FPUZ`），重現越界/UAF/double free/freepointer/洩漏 | **卷2 3-9** |
+| `dl_lab.c` | 五種死鎖情境（AA 自旋鎖、AA mutex、AB-BA 阻塞版/trylock 版、mutex vs `cancel_delayed_work_sync`），全部可自我解除 | **卷2 3-10, 3-11** |
+| `printk_lab.c` | 8 個輸出等級、`print_hex_dump()`、`dump_stack()`、`%p`/`%px`/`%pS` | **卷2 3-12** |
+| `dyndbg_lab.c` | 5 條 `pr_debug()` 的動態開關（module/func/file+line 選擇器、`+pflmt` 旗標、`insmod dyndbg=`） | **卷2 3-13** |
+| `oops_lab.c` | 七種掛掉方式（寫/讀空指標、野指標、執行空指標、`BUG_ON`、`WARN_ON`、kthread 內 oops） | **卷2 3-14** |
+| `ch12_run_all.sh` | 卷2 第 3 章全部實驗的一鍵佈署與重現 | 卷2 第 3 章全部 |
+
+> ⚠ `oops_lab` 在 `module_init` 裡 oops 之後，模組會永遠卡在 `MODULE_STATE_COMING`
+> （`rmmod` 移不掉、同名模組無法再載入），所以腳本會複製成 `oops_m1..oops_m7`
+> 七份不同名字的模組；要清乾淨只能重開機。
+
+
+>>>>>>> Stashed changes
 一鍵在機台上建置：
 
 ```bash
