@@ -1,0 +1,11 @@
+# 卷2 第5章（ch14）實驗模組的 Kbuild Makefile —— 上傳到板子時改名為 Makefile
+#
+# oops_m1..m3 是 oops_lab.c 的複本：模組在 module_init 裡 oops 之後會永遠卡在
+# MODULE_STATE_COMING（rmmod 移不掉、同名模組不能再載入），所以一次開機最多只能跑三次 Q3。
+obj-m += arm64_lab.o crash_probe.o oops_lab.o oops_m1.o oops_m2.o oops_m3.o
+ccflags-y += -g
+KDIR ?= /lib/modules/$(shell uname -r)/build
+all:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) clean
