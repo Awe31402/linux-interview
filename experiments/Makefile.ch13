@@ -1,0 +1,7 @@
+# 卷2 第4章（ch13）實驗模組的 Kbuild Makefile —— 上傳到板子時改名為 Makefile
+obj-m += crash_probe.o rwsem_lab.o lockup_lab.o
+KDIR ?= /lib/modules/$(shell uname -r)/build
+all:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) clean

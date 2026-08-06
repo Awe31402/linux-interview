@@ -55,10 +55,8 @@
 | 卷2 第 1 章 | 📝 [ch10_concurrency_and_synchronization.md](./ch10_concurrency_and_synchronization.md) | 37 | **從記憶體讀出被 alternatives patch 過的指令**，8 種原子操作全部對應到 LSE（`stadd`/`ldaddal`/`casal`/`casa`/`casl`/`cas`/`swpal`）；**LL/SC vs LSE 大小核實測推翻「LSE 一定比較快」**（A55 上 LSE 慢 1.8 倍、A76 激烈爭用時慢 3.5 倍）；qspinlock 三元組狀態機完整重現 `{0,0,1}→{0,1,1}→{CPU2,..}→{CPU3,..}` 且**證明嚴格 FIFO**（三個競爭者相隔 200 µs 依序接棒）；**樂觀自旋 34444 次拿鎖只睡 2 次 vs 645 次拿鎖睡 1156 次**；`synchronize_rcu()` **43.7 ms vs expedited 54 µs（810 倍）**；ftrace 抓到 GP 狀態機與 `qsmask` 位圖 `8>f7→2>f5→1>f4→f4>0`；**修正書上表 1.4 的 pending 位寬**。附「我把機器鎖死」的死鎖活教材 |
 | 第 9 章 | 📝 [ch09_process_management_debugging_and_case_studies.md](./ch09_process_management_debugging_and_case_studies.md) | 13 | **`/proc/sched_debug` 與 `sched_latency_ns` 全部搬到 debugfs**（書上路徑已失效）；`latency_ns=24 ms / min_granularity_ns=3 ms`，**臨界點 nr_running=8 實測命中**；**RK3588 只有 1 層 MC 域、8 個單 CPU 調度組**（與書上兩層拓撲不同）；書上 §9.2 場景重現：**5 個行程 200 ms 內收斂成 3/2**；**關中斷後 `schedule()` 回來 `irqs_disabled()` 從 128 變 0** |
 | 卷2 第 2 章 | 📝 [ch11_interrupt_management.md](./ch11_interrupt_management.md) | 15 | 用 kprobe + `get_irq_regs()` **抓下真實中斷的 `pt_regs`**：使用者態被打斷時 `pc=0xaaaae6faad0c`、`sp` 是 user stack、`stackframe={0,0}`，`&pt_regs` 距核心棧頂**剛好 336 B = `sizeof(pt_regs)`**；**VBAR_EL1 不是 `vectors` 而是 `__bp_harden_el1_vectors`**（Spectre-BHB 副本）；**PSTATE.M=EL2h → 這台機器的核心跑在 EL2（VHE）**；**TRM #237 `irq_emmc` → DTB `<0 205 4>` → hwirq 237 → virq 160** 四層對帳（重開機後 **virq 變成 171 而 hwirq 不變**，證明 virq 是每次開機重配的）；**8 顆 CPU 的中斷棧位址實測**（4526 次中斷、每 CPU 一段、間隔 0x8000）；tasklet 忙等 30 ms **收到 10 次時鐘中斷**＋ftrace `d.H..` 旗標；**同類軟中斷 8 CPU 並行 vs 同一 tasklet 恆為 1**；**行程被軟中斷卡住 40009218 ns**；`local_bh_enable` 的 **`preempt_count=0x101`「留 1」看得見**；CMWQ **6 個睡 300 ms 的 work 只花 316 ms、kworker 6→10** vs 燒 CPU 的 **1 個 worker 360 ms**。**修正 14 處 5.0/GIC-V2/QEMU → 6.1/GIC-600/實機的差異**。**全部實驗重開機後完整重跑驗證過**（25 項指標 24 項完全重現，唯一差異揭露「virq 每次開機重配、hwirq 不變」） |
-<<<<<<< Updated upstream
-=======
 | 卷2 第 3 章 | 📝 [ch12_kernel_debugging_and_performance_optimization.md](./ch12_kernel_debugging_and_performance_optimization.md) | 14 | 同一函式 **-O0 是 37 條指令／6 個變數全在堆疊，-O2 是 18 條／0 個**，-O2 行號表**同一位址 0x8 掛了 9 個行號**（游標亂跳的真身），且 **-O0 在本機真的編不過**（`asm goto` 約束失敗）；**U-Boot `kernel_addr_r=0x00400000` → `/proc/iomem` → `_stext=0xffff800008010000`** 三個位址一路對上，DTB/initrd 位址也對上；把機器碼搬家後 **`adr`/`bl` 跟著走、`ldr x0,=sym` 文風不動**；重定位三連拍：使用者態 PIE 的 `R_AARCH64_RELATIVE addend=e18`、vmlinux **262510 筆**、模組把 `bl 0 <_printk>` **就地改寫成 `95fbdf99`**；樹外 `TRACE_EVENT()` 不重編核心就長出 `events/tp_lab/`，並拍到 **static key 把 `d503201f`(NOP) 改成 `14000002`(B)**；不改 cmdline 用私有 kmem_cache 重現 slub_debug **五種錯誤全部**；**沒有 lockdep 的機器上量死鎖**：AA 自旋鎖 500 ms 內 trylock 失敗 **92,897,122 次**、AA mutex 睡死 4.17 秒且**被 SIGKILL 叫醒後竟「假裝」拿到了鎖**（附 `mutex.c:689` 原始碼解釋）、書上 `cancel_delayed_work_sync` 死鎖**完整重現**（`dl_book` 進 D 狀態，堆疊正是 `__flush_work → __cancel_work_timer`）；真 oops 的 **ESR `0x96000044`(寫) vs `0x96000004`(讀)**、`Code:` 行 → `decodecode` → `faddr2line` 直指 **oops_lab.c:46** |
->>>>>>> Stashed changes
+| 卷2 第 4 章 | 📝 [ch13_x86_64_crash_debugging.md](./ch13_x86_64_crash_debugging.md) | 13 | **這章沒有 Kdump 可用**（板子 `CONFIG_KEXEC` 沒開、主機 `kexec_crash_size=0`），於是把 crash 的 `ps`/`bt`/`bt -f`/`rd`/`struct rw_semaphore`/`list`/`task -R`/`runq -t` **全部用核心模組自己實作一遍**；三個偵測器（softlockup/hardlockup/hung_task）本機也全沒編進去，照著 `kernel/watchdog.c` 與 `kernel/hung_task.c` 各做一份迷你版，抓到 **`BUG: soft lockup - CPU#3 stuck for 12s!`**（心跳照跳、`touch_ts` 落後 21 秒）與 **關中斷 14 秒被鄰居 CPU2 抓到（心跳凍在 17）**；書上 §4.10 的自鎖案例在 ARM64 上完整重演——`insmod` 卡死、**`pgrep`/`ps` 跟著一起排進 `wait_list`**、從堆疊推出 **`priv = x29-0x60 = 0xffff80001024ba40`** 讀到 `benshushu`、阻塞時間 **29.157 秒 vs 實際 29.16 秒**。**修正 13 處 3.10→6.1 的差異**（`watchdog/N` 執行緒已刪、`mmap_sem`→`mmap_lock`、偏移 0x78→0x88、`rwsem.owner` 變成帶旗標的 `atomic_long_t`、卡住的 `ps` 現在是 TASK_KILLABLE…）|
 
 ### 實驗程式
 
@@ -124,8 +122,6 @@
 | `irq_trace.sh` | ftrace 腳本（中斷呼叫鏈 / softirq / workqueue / `/proc/interrupts`↔DTB 對帳） | **卷2 2-3, 2-5, 2-7, 2-11** |
 | `irq_rerun_all.sh` | 把上述 21 個實驗步驟串成一支（含重新編譯與自動還原），用來做重開機重跑驗證 | 卷2 第 2 章全部 |
 
-<<<<<<< Updated upstream
-=======
 
 **內核調試與性能優化（卷2 第 3 章）用的模組與程式**：
 
@@ -148,7 +144,22 @@
 > 七份不同名字的模組；要清乾淨只能重開機。
 
 
->>>>>>> Stashed changes
+**基於 x86_64 解決宕機難題（卷2 第 4 章）用的模組與程式**：
+
+| 檔案 | 跑在哪 | 用途 | 題目 |
+|------|--------|------|------|
+| `x86_abi.c` | 主機 x86_64 | System V AMD64 ABI 五種參數規則（暫存器/堆疊/XMM/結構回傳/AL） | **卷2 4-2** |
+| `x86_frame.c` | 主機 **與** 板子 | 三層函式框架鏈 + 逐格 dump 堆疊 + 局部變數位址推導自我驗證（一份原始碼兩種架構） | **卷2 4-3, 4-10** |
+| `x86_addr.c` | 主機 x86_64 | MOV vs LEA、直接/間接/基址/變址/RIP 相對定址 | **卷2 4-4~4-6** |
+| `x86_oops_case.c` | 主機 x86_64 | 書上 §4.10 的模組原始碼用今天的 x86_64 編一次，驗證書上那段反組譯 | **卷2 4-10** |
+| `lockup_lab.c` | 板子（模組） | 自製 softlockup / hardlockup / hung_task 三個偵測器 + 三種 lockup 製造機 | **卷2 4-7~4-9** |
+| `rwsem_lab.c` | 板子（模組） | 讀寫信號量死鎖現場（mode=1 可回收、mode=2 書上原版會卡死機器） | **卷2 4-10~4-13** |
+| `crash_probe.c` | 板子（模組） | crash 工具替身：`ps`/`bt`/`btf`/`rd`/`rwsem`/`mm`/`mmowner`/`sched`/`runq`/`sym` | **卷2 4-10~4-13** |
+| `ch13_run_all.sh` | 主機 | 一鍵重現（`BOOK_MODE=1` 連書上原版的自鎖一起跑，跑完要重開機） | — |
+
+> ⚠ `rwsem_lab.ko mode=2` 會讓 `insmod` 永遠停在 D 狀態，之後**任何掃 `/proc` 的指令
+> （`ps`/`top`/`pgrep`）都會跟著卡死**，只有 `dmesg` 和 `crash_probe` 還能用；分析完必須重開機。
+
 一鍵在機台上建置：
 
 ```bash
