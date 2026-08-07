@@ -1,0 +1,9 @@
+# 卷2 第6章〈安全漏洞分析〉核心模組 Kbuild
+# 上傳時改名為 Makefile：
+#   scp Makefile.ch15 radxa@$IP:~/exp/ch15/Makefile
+obj-m += pmu_user.o sec_probe.o
+KDIR ?= /lib/modules/$(shell uname -r)/build
+all:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) clean

@@ -67,6 +67,7 @@
 | 卷2 第 3 章 | 📝 [ch12_kernel_debugging_and_performance_optimization.md](./ch12_kernel_debugging_and_performance_optimization.md) | 14 | 同一函式 **-O0 是 37 條指令／6 個變數全在堆疊，-O2 是 18 條／0 個**，-O2 行號表**同一位址 0x8 掛了 9 個行號**（游標亂跳的真身），且 **-O0 在本機真的編不過**（`asm goto` 約束失敗）；**U-Boot `kernel_addr_r=0x00400000` → `/proc/iomem` → `_stext=0xffff800008010000`** 三個位址一路對上，DTB/initrd 位址也對上；把機器碼搬家後 **`adr`/`bl` 跟著走、`ldr x0,=sym` 文風不動**；重定位三連拍：使用者態 PIE 的 `R_AARCH64_RELATIVE addend=e18`、vmlinux **262510 筆**、模組把 `bl 0 <_printk>` **就地改寫成 `95fbdf99`**；樹外 `TRACE_EVENT()` 不重編核心就長出 `events/tp_lab/`，並拍到 **static key 把 `d503201f`(NOP) 改成 `14000002`(B)**；不改 cmdline 用私有 kmem_cache 重現 slub_debug **五種錯誤全部**；**沒有 lockdep 的機器上量死鎖**：AA 自旋鎖 500 ms 內 trylock 失敗 **92,897,122 次**、AA mutex 睡死 4.17 秒且**被 SIGKILL 叫醒後竟「假裝」拿到了鎖**（附 `mutex.c:689` 原始碼解釋）、書上 `cancel_delayed_work_sync` 死鎖**完整重現**（`dl_book` 進 D 狀態，堆疊正是 `__flush_work → __cancel_work_timer`）；真 oops 的 **ESR `0x96000044`(寫) vs `0x96000004`(讀)**、`Code:` 行 → `decodecode` → `faddr2line` 直指 **oops_lab.c:46** |
 | 卷2 第 4 章 | 📝 [ch13_x86_64_crash_debugging.md](./ch13_x86_64_crash_debugging.md) | 13 | **這章沒有 Kdump 可用**（板子 `CONFIG_KEXEC` 沒開、主機 `kexec_crash_size=0`），於是把 crash 的 `ps`/`bt`/`bt -f`/`rd`/`struct rw_semaphore`/`list`/`task -R`/`runq -t` **全部用核心模組自己實作一遍**；三個偵測器（softlockup/hardlockup/hung_task）本機也全沒編進去，照著 `kernel/watchdog.c` 與 `kernel/hung_task.c` 各做一份迷你版，抓到 **`BUG: soft lockup - CPU#3 stuck for 12s!`**（心跳照跳、`touch_ts` 落後 21 秒）與 **關中斷 14 秒被鄰居 CPU2 抓到（心跳凍在 17）**；書上 §4.10 的自鎖案例在 ARM64 上完整重演——`insmod` 卡死、**`pgrep`/`ps` 跟著一起排進 `wait_list`**、從堆疊推出 **`priv = x29-0x60 = 0xffff80001024ba40`** 讀到 `benshushu`、阻塞時間 **29.157 秒 vs 實際 29.16 秒**。**修正 13 處 3.10→6.1 的差異**（`watchdog/N` 執行緒已刪、`mmap_sem`→`mmap_lock`、偏移 0x78→0x88、`rwsem.owner` 變成帶旗標的 `atomic_long_t`、卡住的 `ps` 現在是 TASK_KILLABLE…）|
 | 卷2 第 5 章 | 📝 [ch14_arm64_crash_debugging.md](./ch14_arm64_crash_debugging.md) | 7 | **這章板子本身就是主場**：三層核心呼叫鏈的框架指標 `bd90/bdd0/be50` 用框架鏈爬出來，**和模組自己印的 ground truth 一位不差**；用四種序幕推翻書上「FP 一定等於 SP」——**真葉子函式連框架記錄都沒有**（實測 oops 的 calltrace 因此少了一層 `oops_lab_init`，名字只出現在 `lr :`），核心 `-Os` 是 `add x29,sp,#0x10`，VLA 讓 sp 再掉 64 B；書上式(5.2) 的「LR−4」在 6.1 是 **`%pSb` → `sprint_backtrace()` 減 1**（`kallsyms.c:605-621`）；**參數不在堆疊上**——照書上 §5.5.2 從 `rwsem_down_read_slowpath` 的 `stp x19,x20,[sp,#96]` 回推，**4 個參數 4/4 完全命中**，局部變數 `priv = x29-0x60` 讀到 `benshushu`；阻塞時間 **3276.599 秒 vs 實際 3276.9 秒**。**還原地重建了一個和跑著的核心逐位元組相符、帶 DWARF 的 vmlinux**（版本橫幅一字不差、符號位址全對），裝了 crash 8.0.2 + `/dev/crash` driver，最後卡在 crash 猜錯 VA_BITS（47 vs 48）——完整分析與「要怎樣才有真 Kdump」寫在附錄 A |
+| 卷2 第 6 章 | 📝 [ch15_security_vulnerabilities.md](./ch15_security_vulnerabilities.md) | 9 | **一台「熔斷免疫、幽靈仍中」的對照組**：自寫 `perf_user_access=1 + config1=0x2` 拿到週期級 `PMCCNTR_EL0`，Flush+Reload 直方圖**命中 52 vs 未命中 399 週期兩峰完全分離**、隱蔽通道把 `"benshushu"` **9/9** 傳出來；**熔斷 PoC 打不穿**——核心植入已知祕密 `0x5a`，signal 法探測 2000 次**一個位元組都偷不到**（A76 `CSV3=1`、A55 白名單）；**但幽靈變體1 PoC 在 A76 上越過 `if(x<size)` 洩漏 40/40 位元組** "The Magic Words are Squeamish Ossifrage."；**KPTI 編了卻沒生效**（核心頁 `nG=0`、`/proc/kallsyms` 無 `tramp_vectors`、VBAR≠跳板）；**v2/BHB 硬化向量表只掛 A76**（`__bp_harden_el1_vectors`）、in-order 的 **A55 用原始 `vectors`**；分支誤判懲罰 **A76 2.29× vs A55 1.74×**；在**正在跑的核心** `invoke_syscall` 反組譯出 `cmp/sbc/csdb`（`csdb=0xd503229f`）證明 `array_index_nospec`。**踩坑記**：4096 步長會把探針全撞進同一個 L1 cache set（4-way）而失真，改 4160 步長散到不同 set 才穩定 |
 
 ### 實驗程式
 
@@ -180,6 +181,24 @@
 | `ch14_run_all.sh` | 一鍵重現（有 vmlinux 時會改用真 crash 工具） | — |
 
 > 卷2 第 5 章還沿用了第 3、4 章的 `oops_lab.c`（產生真 oops）與 `crash_probe.c`（crash 子命令替身）。
+
+**安全漏洞分析（卷2 第 6 章）用的模組與程式**：
+
+| 檔案 | 跑在哪 | 用途 | 題目 |
+|------|--------|------|------|
+| `pmu_user.c` | 模組 | `on_each_cpu` 打開 `PMUSERENR_EL0`，讓 EL0 直讀週期計數器（週期級時鐘的備援路徑） | Q1/Q3/Q7 |
+| `sidechannel.h` | 共用 | Flush+Reload 原語（`dc civac`/`ldrb`/`dsb`）+ **perf 自我監控週期計數器**（`perf_user_access=1`+`config1=0x2`，附 SIGILL 保護的 fallback） | Q1/Q3/Q7 |
+| `sec_probe.c` | 模組 | 每 CPU 讀 `ID_AA64PFR0.CSV2/CSV3`、`TCR.A1`/TTBR ASID、軟體巡覽核心頁 `nG` 位、每 CPU `VBAR_EL1`、反組譯 `invoke_syscall` 抓 `csdb`、**kmalloc 植入已知核心祕密供攻擊** | **Q3/Q4/Q5/Q7/Q8** |
+| `flush_reload.c` | 使用者態 | cache 命中/未命中延遲直方圖 + 隱蔽通道傳字串 | **Q1** |
+| `meltdown_test.c` | 使用者態 | 熔斷 PoC（讀核心位址）+ 兩種例外抑制（`SIGSEGV`+`siglongjmp` / `fork`） | **Q2/Q3** |
+| `branch_pred.c` | 使用者態 | 分支誤判懲罰：已排序 vs 未排序同一迴圈（週期級量測） | **Q6** |
+| `spectre_v1.c` | 使用者態 | 幽靈變體1 PoC：訓練分支預測器 → 越過 `if(x<size)` → Flush+Reload 洩漏 | **Q7** |
+| `nospec_mask.c` | 使用者態 | `array_index_mask_nospec` 純 C 版 vs `cmp/sbc/csdb` 組語版 + `objdump` 看 `csdb` 機器碼 | **Q8/Q9** |
+| `Makefile.ch15` | — | `pmu_user` + `sec_probe` 兩個模組的 Kbuild（上傳時改名 `Makefile`） | — |
+| `ch15_run_all.sh` | 主機 | 一鍵佈署與重現（跑完自動卸載模組、`perf_user_access=0` 收回權限） | 卷2 第 6 章全部 |
+
+> ⚠ 這章會改動機台設定（`kernel.perf_user_access`、載入 `pmu_user`/`sec_probe` 模組）。
+> `ch15_run_all.sh` 結尾會自動還原；手動跑完請 `sudo rmmod sec_probe pmu_user; sudo sysctl kernel.perf_user_access=0`。
 
 一鍵在機台上建置：
 
