@@ -4,7 +4,7 @@
 >
 > **「我呼叫 `rknn_run()`，到 RK3588 的 NPU 硬體真的開始算，中間發生了什麼事？」**
 >
-> 全書 10 章、33 個實驗，**每一個都在真機上跑過**。
+> 全書 10 章、34 個實驗，**每一個都在真機上跑過**。
 > 平台：Radxa ROCK 5B（RK3588），`Linux 6.1.115+`，RKNPU driver `v0.9.8`。
 
 ---
@@ -76,6 +76,7 @@
 | [`experiments/exp03_action.c`](./experiments/exp03_action.c) | ch03 | 算出 ioctl 號碼、問遍 `ACTION` 的 26 個子命令 |
 | [`experiments/exp03_count.sh`](./experiments/exp03_count.sh) | ch03 | `strace -e raw=ioctl` 統計一次推論送了什麼 |
 | [`experiments/exp05_run.c`](./experiments/exp05_run.c) | ch05~ch09 | 通用 `.rknn` 執行器，可指定 `core_mask` 和次數 |
+| [`experiments/exp05_tiling.py`](./experiments/exp05_tiling.py) | ch05 | 分析 rkspy 的 log，驗證分條規則 |
 
 **編譯**（板子上）：
 
@@ -94,13 +95,13 @@ gcc -O1 -o exp03_action exp03_action.c
 > **每一個「這段程式碼對應 TRM 哪裡」的說法，都必須真的在 TRM 裡找到。
 > 找不到就明講「TRM 沒寫」。絕對不掰一個聽起來合理的暫存器名字。**
 
-結果是全書累積了 **18 筆** TRM／程式碼落差（完整表在
+結果是全書累積了 **19 筆** TRM／程式碼落差（完整表在
 [ch09](./ch09_reset.md#trm-與實機對不上的地方完整版)），其中 **6 筆的結論是「待查」**。
 
 寫作過程中**自己抓到並修正了兩次違規**，兩次都是「聽起來很合理」的說法：
 
 - `CNA` 展開成 "Convolution Neural network Accelerator" —— **TRM 從未展開這個縮寫**
-- 「分條多出的 2 列 = 卷積接縫重疊」—— 換一個模型驗證就不成立
+- 「分條多出的 2 列 = 卷積接縫重疊」—— 換一個模型驗證就不成立（**後來解出正解**：`(片數−1)×(k_h − s_y)`）
 
 ---
 

@@ -171,9 +171,12 @@ static int regcmd_find(struct rknpu_task *tk, unsigned want, uint32_t *out)
  */
 static void dump_shapes(struct rknpu_submit *s, struct rknpu_task *t)
 {
-	fprintf(lg,"\n  === 每個 task 的輸入張量形狀（從 CNA 暫存器還原）===\n");
-	fprintf(lg,"  %-5s %-7s %-8s %6s %6s %8s %8s\n",
-		"task","op_idx","regcfg","width","height","ch","ch_real");
+	fprintf(lg,"\n  === 每個 task 的卷積參數（從 CNA 暫存器還原）===\n");
+	fprintf(lg,"  0x1020 data_size0: [26:16]=width [10:0]=height   0x1024 data_size1: [29:16]=ch_real [15:0]=ch\n");
+	fprintf(lg,"  0x1010 conv_con2 : [13:4]=feature_grains          0x1014 conv_con3 : [5:3]=y_stride [2:0]=x_stride\n");
+	fprintf(lg,"  0x1038 wt_size2  : [28:24]=k_w [20:16]=k_h        0x1068 pad_con0 : [7:4]=pad_left [3:0]=pad_top\n");
+	fprintf(lg,"  %-5s %-6s %5s %5s %6s %6s %6s %4s %4s %4s %4s %4s %4s\n",
+		"task","op","W","H","ch","chreal","grains","k_w","k_h","sx","sy","pl","pt");
 	int prev_op = -1;
 	for (uint32_t k = 0; k < s->task_number; k++) {
 		struct rknpu_task *tk = &t[s->task_start + k];
@@ -183,11 +186,25 @@ static void dump_shapes(struct rknpu_submit *s, struct rknpu_task *t)
 		if ((int)tk->op_idx != prev_op && prev_op >= 0)
 			fprintf(lg,"  %s\n","  ----");
 		prev_op = tk->op_idx;
-		fprintf(lg,"  %-5u %-7u %-8u", s->task_start + k, tk->op_idx, tk->regcfg_amount);
-		if (has0) fprintf(lg," %6u %6u", (sz0 >> 16) & 0x7ff, sz0 & 0x7ff);
+		uint32_t cc2=0, cc3=0, ws2=0, pad=0;
+		int hcc2 = regcmd_find(tk, 0x1010, &cc2);
+		int hcc3 = regcmd_find(tk, 0x1014, &cc3);
+		int hws2 = regcmd_find(tk, 0x1038, &ws2);
+		int hpad = regcmd_find(tk, 0x1068, &pad);
+
+		fprintf(lg,"  %-5u %-6u", s->task_start + k, tk->op_idx);
+		if (has0) fprintf(lg," %5u %5u", (sz0 >> 16) & 0x7ff, sz0 & 0x7ff);
+		else      fprintf(lg," %5s %5s", "-", "-");
+		if (has1) fprintf(lg," %6u %6u", sz1 & 0xffff, (sz1 >> 16) & 0x3fff);
 		else      fprintf(lg," %6s %6s", "-", "-");
-		if (has1) fprintf(lg," %8u %8u", sz1 & 0xffff, (sz1 >> 16) & 0x3fff);
-		else      fprintf(lg," %8s %8s", "-", "-");
+		if (hcc2) fprintf(lg," %6u", (cc2 >> 4) & 0x3ff);
+		else      fprintf(lg," %6s", "-");
+		if (hws2) fprintf(lg," %4u %4u", (ws2 >> 24) & 0x1f, (ws2 >> 16) & 0x1f);
+		else      fprintf(lg," %4s %4s", "-", "-");
+		if (hcc3) fprintf(lg," %4u %4u", cc3 & 0x7, (cc3 >> 3) & 0x7);
+		else      fprintf(lg," %4s %4s", "-", "-");
+		if (hpad) fprintf(lg," %4u %4u", (pad >> 4) & 0xf, pad & 0xf);
+		else      fprintf(lg," %4s %4s", "-", "-");
 		fprintf(lg,"\n");
 	}
 	fflush(lg);
