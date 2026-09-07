@@ -1,8 +1,8 @@
 # 任務簡報：RK3588 NPU 入門教材
 
 > 本檔是**任務定義**，不是教材本身。
-> 教材等實體板子（Radxa Rock 5B）到手後再開始寫。
 > 產出日期：2026-09-05
+> **更新：2026-09-07 —— 板子到手，開工前的驗證全部跑完。大綱見 `OUTLINE.md`。**
 
 ---
 
@@ -49,6 +49,20 @@ driver 幾乎不懂模型，它只負責把清單位址交給硬體，然後說�
 而那些暫存器是什麼意思 —— **TRM 第 36 章就是在講這個**。
 所以雖然 `.so` 閉源，這條路完全走得通。
 
+> ✅ **2026-09-07 實機驗證通過。** 用 `tools/rkspy.c` 攔下 `SUBMIT`，把 `regcmd_addr` 指到的
+> 內容整包挖出來，解出格式後逐筆對回 TRM ——
+> `0x1040`→`RKNN_cna_cbuf_con0`、`0x1020`→`RKNN_cna_data_size0`、`0x4004`→`RKNN_dpu_s_pointer`…
+> **一個都沒漏。**
+>
+> regcmd 每筆 8 bytes（TRM 未記載，實測解出）：
+> `[15:0]`=暫存器 offset、`[47:16]`=32-bit 值、`[63:48]`=區塊標籤
+> （`0x0201`→CNA `0x1xxx`、`0x1001`→DPU `0x4xxx`、`0x2001`→DPU_RDMA `0x5xxx`，
+> 與 TRM **36.4.1** 的位址表完全吻合）。
+>
+> 而且 TRM **36.3.5 Register File Fetch Unit** 自己就寫了這句：
+> *"fetch register configuration from external system memory through AXI interface"*。
+> 論點不是我們推的，是 Rockchip 自己講的。
+
 ---
 
 ## 欄位 2／5：現場狀況（Situation）
@@ -85,10 +99,34 @@ driver 幾乎不懂模型，它只負責把清單位址交給硬體，然後說�
 沒寫過 Linux driver。platform driver、device tree、DRM GEM、DMA-BUF、dma-fence、
 IOMMU、devfreq —— 這些全部要從零講起。
 
-### 板子狀態
-**目前手上沒有 Rock 5B，之後會準備。**
-→ 教材開工時機：等板子到手。
-→ 但教材裡的「實機驗證」段落照樣要寫（指令、步驟寫好），輸出處標 `⏳ 待實機`。
+### 板子狀態（2026-09-07 更新）
+**板子已到手，隨時可用。** `ssh radxa@192.168.68.58`（金鑰已設，免密碼；sudo 密碼 `radxa`）。
+
+| 項目 | 實機值 |
+|---|---|
+| kernel | `6.1.115+` |
+| rknpu driver | **v0.9.8**，與本樹 `rknpu_drv.h:33-35` **相同** |
+| 走哪道門 | **DRM GEM** — `/dev/dri/renderD129`（driver=RKNPU），`/dev/rknpu` 不存在 |
+| RKNN runtime | `librknnrt.so.2.0.0b0` |
+| SDK / 範例 / 模型 | 板子上都有，含編好的 `rknn_create_mem_demo` + RK3588 mobilenet_v1 |
+
+實測跑通：mobilenet_v1 推論 **2.94 ms / 339 FPS**，狗辨識正確（class 156）。
+閒置 `power=off` → 送 job `power=on` → 停 3 秒又 `off`（`delayms=3000` 生效）。
+預設**只有 Core0 在動**（`core_mask=0x0`，由 driver 決定分工）。
+
+**已開/未開的 config**（決定哪些實驗現在做得了）：
+
+```
+CONFIG_ROCKCHIP_RKNPU=y
+CONFIG_ROCKCHIP_RKNPU_DRM_GEM=y        ← Kconfig 的 default 生效，猜對了
+CONFIG_ROCKCHIP_RKNPU_DEBUG_FS=y
+CONFIG_ROCKCHIP_IOMMU=y
+# CONFIG_ROCKCHIP_RKNPU_SRAM    is not set   → 少了 debugfs 的 mm 節點
+# CONFIG_ROCKCHIP_RKNPU_FENCE   is not set   → dma-fence 實驗做不了，實測 fence_fd=-1
+# CONFIG_ROCKCHIP_RKNPU_PROC_FS is not set
+```
+
+可用的觀察工具：`strace`、`ftrace`、`CONFIG_KPROBES`、`CONFIG_DYNAMIC_FTRACE` 全部都有。
 
 ---
 
@@ -166,7 +204,8 @@ ioctl 命令共 6 個：
 - **不寫效能調校指南。** 怎麼讓模型跑更快、三核怎麼分配 —— 那是另一份文件。
 - **只講 RK3588。** RK3562/3566/3568 的 NPU 是不同世代，程式碼裡的 `if (rk356x)` 分支
   一律標註「這段不是給我們的晶片」然後跳過。
-- **不假設有板子。** 動手做的部分標「等有板子再做」，不當成理解的前提。
+- ~~**不假設有板子。**~~ 2026-09-07 起板子已到手，實驗直接做。
+  但**沒板子也要看得懂**這條仍然成立：實機輸出是佐證，不是理解的前提。
 
 ---
 
@@ -176,11 +215,15 @@ ioctl 命令共 6 個：
 ```
 notes/rknpu/
 ├── BRIEF.md          ← 本檔
-├── ch01_*.md
-├── ch02_*.md
-├── ...
-└── experiments/      ← 實驗用 .c / .sh
+├── OUTLINE.md        ← 大綱（2026-09-07 產出，待確認）
+├── ch00_*.md … ch09_*.md
+├── tools/            ← 跨章共用的工具
+│   └── rkspy.c       ← LD_PRELOAD ioctl 攔截器
+└── experiments/      ← 各章專屬的 .c / .sh
 ```
+
+> `tools/` 是 2026-09-07 增補的。原本只規劃 `experiments/`，
+> 但 `rkspy.c` 被第 4～7 章共用，不屬於任何單一實驗。
 不塞進現有的 `notes/ch01~ch15`（那是另一本書的筆記）。
 
 ### 長什麼樣
@@ -238,7 +281,22 @@ NPU 三核架構圖、資料流程圖 → 之後可另外做成互動式 artifac
 | `volt` | ✓ | | 目前電壓 |
 | `delayms` | ✓ | ✓ | `power_put_delay`，閒置多久自動關電 |
 | `reset` | ✓ | ✓ | 手動觸發重置 |
-| `mm` | ✓ | | SRAM 配置狀況（需 `CONFIG_ROCKCHIP_RKNPU_SRAM`） |
+| ~~`mm`~~ | | | SRAM 配置狀況 —— **實機沒有**，`CONFIG_ROCKCHIP_RKNPU_SRAM` 沒開 |
+
+> ⚠️ 2026-09-07 實測補充：這些節點 `ls -l` 顯示 `-r--r--r--`（`0444`），**看起來像唯讀**，
+> 但 root 照樣寫得進去（`CAP_DAC_OVERRIDE` 蓋過權限位元）。已驗證 `delayms` 可寫。
+> 這個反直覺點本身值得寫進教材。
+
+實機讀出來長這樣：
+
+```
+version   RKNPU driver: v0.9.8
+load      NPU load:  Core0:  0%, Core1:  0%, Core2:  0%,
+power     off
+freq      1000000000
+volt      825000
+delayms   3000
+```
 
 **模組參數** — `drivers/rknpu/rknpu_drv.c:66`，權限 `0644`，可執行時修改：
 
@@ -274,13 +332,47 @@ NPU 三核架構圖、資料流程圖 → 之後可另外做成互動式 artifac
 | 7 錯誤路徑 | 7.1 | `bypass_soft_reset=1` 觸發 timeout | 有無軟重置的復原行為差異 | 重置與錯誤 |
 | | 7.2 | `echo 1 > rknpu/reset` 手動重置後確認仍可用 | 重置流程做了哪些事（`rknpu_reset.c`） | 重置與錯誤 |
 
-### A.3 實驗 5.1 是重點
+### A.3 實驗 5.1 是重點 —— ✅ 2026-09-07 已驗證通過
 
-如果 dump 出來的 `regcmd` 內容真的能跟 TRM 第 36 章的暫存器 offset 表逐筆對上，
-整份教材的論點就從「我說它是這樣」變成「你自己看」。
+原本擔心這項會卡住（本來想用 kprobe 或改 debugger）。實際做法更乾淨：
+**`LD_PRELOAD` 攔在 `librknnrt.so` 跟核心中間**，完全不動 kernel。
 
-這也是最可能卡住的一項（可能需要加 kprobe 或臨時修改 debugger 來取得 buffer 內容）。
-**開工時優先驗證這一項可不可行**，因為它決定核心章能寫到多深。
+作法（原始碼：`tools/rkspy.c`，127 行）：
+
+| 攔什麼 | 記下什麼 |
+|---|---|
+| `MEM_CREATE` 回傳 | `handle` / `obj_addr` / `dma_addr` / `size` |
+| `MEM_MAP` 回傳 | 假 offset |
+| `mmap` **和 `mmap64`** | 用 offset 綁到使用者位址 |
+| `SUBMIT` 進去前 | 用 `task_obj_addr` 找 task 陣列；用 `regcmd_addr` 落在哪塊 buffer 的 dma 區間找 regcmd |
+
+> 🕳️ 踩到的坑：aarch64 的 glibc 走 **`mmap64`**，只攔 `mmap` 會漏掉全部對映。兩個都要攔。
+
+挖出來的結果（mobilenet_v1，一次推論配 5 塊記憶體、送 2 次 SUBMIT、共 120 個 task）：
+
+```
+--- task[0] op_idx=1 regcfg_amount=126 regcmd_addr=0xffc35bc0
+    raw=40 10 1b 00 00 00 01 02  off=0x1040 val=0x0000001b tag=0x0201
+    raw=0c 10 00 a0 00 60 01 02  off=0x100c val=0x6000a000 tag=0x0201
+    raw=04 40 0e 00 00 00 01 10  off=0x4004 val=0x0000000e tag=0x1001
+```
+
+拿 TRM **36.4.3** 的位元定義去讀 `0x1020`（`datain_width` 在 `[26:16]`、
+`datain_height` 在 `[10:0]`），整個 MobileNet 的形狀就浮出來了：
+
+| op_idx | 寬 | 高（分批） |
+|---|---|---|
+| 1 | **224** | 99 + 99 + 28 |
+| 2 | **112** | 100 + 14 |
+| 3 | 112 | 100 + 12 |
+| 31 | **1** | **1** |
+
+224 → 112（第一層 stride=2 砍半）→ … → 1×1（分類層）。**網路形狀直接寫在暫存器裡。**
+
+高度被切開是因為每核內部緩衝只有 384KB，整張圖塞不下，得切橫條分批算。
+`99+99+28 = 226`，比 224 多 2 列 —— **推測**是捲積接縫重疊，用實驗 5.2 證明，不直接斷言。
+
+**結論：核心章寫得下去，而且比原本預期的深。**
 
 ### A.4 實驗程式碼的擺放
 
@@ -293,8 +385,10 @@ NPU 三核架構圖、資料流程圖 → 之後可另外做成互動式 artifac
 
 ## 開工前的檢查清單
 
-- [ ] 板子（Radxa Rock 5B）到手
-- [ ] 板子能開機、能跑 RKNN SDK 範例
-- [ ] 工作目錄含 `/home/awe/disk/rknn-toolkit2`（本次已加）
-- [ ] 第一步：產出大綱，等使用者確認
-- [ ] 開工後優先驗證實驗 5.1（regcmd dump）可不可行
+- [x] 板子（Radxa Rock 5B）到手 —— 2026-09-07
+- [x] 板子能開機、能跑 RKNN SDK 範例 —— mobilenet_v1 2.94ms / 339 FPS
+- [x] 工作目錄含 `/home/awe/disk/rknn-toolkit2`
+- [x] 優先驗證實驗 5.1（regcmd dump）可不可行 —— **通過**，見 A.3
+- [x] 產出大綱 —— `OUTLINE.md`，10 章
+- [ ] 使用者確認大綱
+- [ ] 開始寫 ch00

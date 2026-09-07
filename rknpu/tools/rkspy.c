@@ -1,0 +1,142 @@
+/* rkspy.c — LD_PRELOAD shim: 攔 rknpu ioctl，把 regcmd 挖出來 */
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dlfcn.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+
+#define RKNPU_ACTION     0x00
+#define RKNPU_SUBMIT     0x01
+#define RKNPU_MEM_CREATE 0x02
+#define RKNPU_MEM_MAP    0x03
+#define RKNPU_MEM_DESTROY 0x04
+#define RKNPU_MEM_SYNC   0x05
+#define DRM_COMMAND_BASE 0x40
+
+struct rknpu_mem_create { uint32_t handle; uint32_t flags; uint64_t size;
+	uint64_t obj_addr; uint64_t dma_addr; uint64_t sram_size;
+	int32_t iommu_domain_id; uint32_t core_mask; };
+struct rknpu_mem_map { uint32_t handle; uint32_t reserved; uint64_t offset; };
+struct rknpu_task { uint32_t flags, op_idx, enable_mask, int_mask, int_clear,
+	int_status, regcfg_amount, regcfg_offset; uint64_t regcmd_addr; } __attribute__((packed));
+struct rknpu_subcore_task { uint32_t task_start, task_number; };
+struct rknpu_submit { uint32_t flags, timeout, task_start, task_number, task_counter;
+	int32_t priority; uint64_t task_obj_addr; uint32_t iommu_domain_id, reserved;
+	uint64_t task_base_addr; int64_t hw_elapse_time; uint32_t core_mask; int32_t fence_fd;
+	struct rknpu_subcore_task subcore_task[5]; };
+
+#define MAXB 512
+static struct { uint32_t handle; uint64_t obj_addr, dma_addr, size, moff, va; } bufs[MAXB];
+static int nbuf;
+static int submit_seen;
+
+static void *(*real_mmap)(void*,size_t,int,int,int,off_t);
+static int (*real_ioctl)(int,unsigned long,...);
+static FILE *lg;
+
+static void init(void){
+	if(!real_ioctl) real_ioctl = dlsym(RTLD_NEXT,"ioctl");
+	if(!real_mmap)  real_mmap  = dlsym(RTLD_NEXT,"mmap");
+	if(!lg){ lg = fopen(getenv("RKSPY_LOG")?:"/tmp/rkspy.log","w"); }
+}
+/* 用 dma_addr 找出哪塊 buffer 裝著這段位址 */
+static int find_by_dma(uint64_t d){
+	for(int i=0;i<nbuf;i++) if(bufs[i].dma_addr && d>=bufs[i].dma_addr && d<bufs[i].dma_addr+bufs[i].size) return i;
+	return -1;
+}
+static int find_by_obj(uint64_t o){
+	for(int i=0;i<nbuf;i++) if(bufs[i].obj_addr==o) return i;
+	return -1;
+}
+
+static void note_map(void *r, off_t off){
+	if(r==MAP_FAILED || (uint64_t)off < 0x100000000ULL) return;
+	for(int i=0;i<nbuf;i++) if(bufs[i].moff==(uint64_t)off){
+		bufs[i].va=(uint64_t)r;
+		fprintf(lg,"  -> mmap 綁定 h=%u va=0x%llx (off=0x%llx)\n",
+			bufs[i].handle,(unsigned long long)r,(unsigned long long)off);
+	}
+}
+void *mmap(void *a,size_t l,int p,int f,int fd,off_t off){
+	init(); void *r = real_mmap(a,l,p,f,fd,off); note_map(r,off); return r;
+}
+void *mmap64(void *a,size_t l,int p,int f,int fd,off_t off){
+	init(); void *r = real_mmap(a,l,p,f,fd,off); note_map(r,off); return r;
+}
+
+static void dump_submit(struct rknpu_submit *s){
+	fprintf(lg,"\n================ SUBMIT #%d ================\n",++submit_seen);
+	fprintf(lg,"flags=0x%x task_start=%u task_number=%u core_mask=0x%x fence_fd=%d\n",
+		s->flags,s->task_start,s->task_number,s->core_mask,s->fence_fd);
+	fprintf(lg,"task_obj_addr=0x%llx  task_base_addr=0x%llx  iommu_domain_id=%d\n",
+		(unsigned long long)s->task_obj_addr,(unsigned long long)s->task_base_addr,s->iommu_domain_id);
+	for(int i=0;i<5;i++)
+		fprintf(lg,"  subcore[%d]: start=%u number=%u\n",i,
+			s->subcore_task[i].task_start,s->subcore_task[i].task_number);
+
+	int ti = find_by_obj(s->task_obj_addr);
+	if(ti<0){ fprintf(lg,"  !! 找不到 task buffer\n"); return; }
+	if(!bufs[ti].va){ fprintf(lg,"  !! task buffer 沒 mmap\n"); return; }
+	struct rknpu_task *t = (struct rknpu_task*)bufs[ti].va;
+	fprintf(lg,"  task buffer: va=0x%llx dma=0x%llx size=%llu\n",
+		(unsigned long long)bufs[ti].va,(unsigned long long)bufs[ti].dma_addr,
+		(unsigned long long)bufs[ti].size);
+
+	uint32_t n = s->task_number; if(n>8) n=8;   /* 只印前 8 個 */
+	for(uint32_t k=0;k<n;k++){
+		struct rknpu_task *tk = &t[s->task_start+k];
+		fprintf(lg,"\n  --- task[%u] op_idx=%u regcfg_amount=%u regcfg_offset=%u regcmd_addr=0x%llx int_mask=0x%x\n",
+			s->task_start+k,tk->op_idx,tk->regcfg_amount,tk->regcfg_offset,
+			(unsigned long long)tk->regcmd_addr,tk->int_mask);
+		int ri = find_by_dma(tk->regcmd_addr);
+		if(ri<0){ fprintf(lg,"      (regcmd 不在已知 buffer 內)\n"); continue; }
+		if(!bufs[ri].va){ fprintf(lg,"      (regcmd buffer 沒 mmap)\n"); continue; }
+		uint64_t off = tk->regcmd_addr - bufs[ri].dma_addr;
+		uint32_t *w = (uint32_t*)(bufs[ri].va + off);
+		uint32_t cnt = tk->regcfg_amount + 4;   /* RKNPU_PC_DATA_EXTRA_AMOUNT */
+		if(cnt>24) cnt=24;                       /* 只印開頭 */
+		fprintf(lg,"      regcmd buffer va=0x%llx dma=0x%llx off=0x%llx\n",
+			(unsigned long long)bufs[ri].va,(unsigned long long)bufs[ri].dma_addr,
+			(unsigned long long)off);
+		unsigned char *b = (unsigned char*)w;
+		for(uint32_t j=0;j<cnt*4 && j<96;j+=8){
+			uint64_t e=0; for(int q=7;q>=0;q--) e=(e<<8)|b[j+q];
+			fprintf(lg,"      raw=%02x %02x %02x %02x %02x %02x %02x %02x  |u64=0x%016llx| off=0x%04x val=0x%08x tag=0x%04x\n",
+				b[j],b[j+1],b[j+2],b[j+3],b[j+4],b[j+5],b[j+6],b[j+7],
+				(unsigned long long)e,
+				(unsigned)(e & 0xffff),
+				(unsigned)((e>>16) & 0xffffffffULL),
+				(unsigned)((e>>48) & 0xffff));
+		}
+	}
+	fflush(lg);
+}
+
+int ioctl(int fd, unsigned long req, ...){
+	init();
+	va_list ap; va_start(ap,req); void *arg = va_arg(ap,void*); va_end(ap);
+	int nr = _IOC_NR(req), ty = _IOC_TYPE(req);
+
+	if(ty=='d' && nr==DRM_COMMAND_BASE+RKNPU_SUBMIT && arg) dump_submit(arg);
+
+	int r = real_ioctl(fd,req,arg);
+	if(r || ty!='d' || !arg) return r;
+
+	if(nr==DRM_COMMAND_BASE+RKNPU_MEM_CREATE){
+		struct rknpu_mem_create *c = arg;
+		if(nbuf<MAXB){ bufs[nbuf].handle=c->handle; bufs[nbuf].obj_addr=c->obj_addr;
+			bufs[nbuf].dma_addr=c->dma_addr; bufs[nbuf].size=c->size; nbuf++; }
+		fprintf(lg,"MEM_CREATE h=%u size=%llu flags=0x%x obj=0x%llx dma=0x%llx\n",
+			c->handle,(unsigned long long)c->size,c->flags,
+			(unsigned long long)c->obj_addr,(unsigned long long)c->dma_addr);
+	} else if(nr==DRM_COMMAND_BASE+RKNPU_MEM_MAP){
+		struct rknpu_mem_map *m = arg;
+		for(int i=0;i<nbuf;i++) if(bufs[i].handle==m->handle) bufs[i].moff=m->offset;
+		fprintf(lg,"MEM_MAP    h=%u offset=0x%llx\n",m->handle,(unsigned long long)m->offset);
+	}
+	return r;
+}
