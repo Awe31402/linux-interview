@@ -65,6 +65,8 @@ cat /sys/module/rknpu/parameters/bypass_irq_handler
 echo 1 | sudo tee /sys/module/rknpu/parameters/bypass_irq_handler
 sudo ./exp05_run $M 1 20 >/dev/null                # 還是會動？
 echo 0 | sudo tee /sys/module/rknpu/parameters/bypass_irq_handler
+
+# ---- 實驗 7.4：用開機參數真的關掉（會重開機兩次，步驟見 §6）----
 ```
 
 ---
@@ -481,41 +483,116 @@ rknpu_drv.c:1392:  if (!rknpu_dev->bypass_irq_handler) {
 > **讀 driver 的習慣：看到模組參數，先 grep 它被讀幾次、在哪裡讀。**
 > 權限位元不會告訴你這件事。
 
-### ⏳ 真的要關掉的話
+### 實機驗證（7.4）：用開機參數真的關掉它
 
-`CONFIG_ROCKCHIP_RKNPU=y`（內建，不是模組），所以只能靠**開機參數**：
+`CONFIG_ROCKCHIP_RKNPU=y`（內建，不是模組），所以只能靠**開機參數**。
 
 ```bash
 # 1. 備份
 sudo cp /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf.bak
 
-# 2. 在 append 那行尾端加上參數
+# 2. 在每個 append 行尾端加參數
 sudo sed -i 's|\(^\s*append .*\)|\1 rknpu.bypass_irq_handler=1|' /boot/extlinux/extlinux.conf
 
 # 3. 檢查改對了再重開
 grep append /boot/extlinux/extlinux.conf
+grep -E '^label|linux /|initrd /' /boot/extlinux/extlinux.conf   # 這些不該被動到
 sudo reboot
+```
 
-# 4. 開機後
-cat /proc/cmdline | tr ' ' '\n' | grep rknpu
-grep fdab0000.npu /proc/interrupts        # 預期：整行消失（沒註冊）
-sudo dmesg | grep -i "bypass irq"         # 預期：RKNPU ...: bypass irq handler!
-sudo ./exp05_run $M 1 1                   # 預期：卡住然後 timeout
-sudo dmesg | tail                         # 預期：failed to wait job ... -ETIMEDOUT
+> ⚠️ 這塊板子的 `extlinux.conf` 有 **4 個** label
+> （`l0` / `l0r` 單人模式 / `l1` 舊 kernel / `l1r`），
+> 上面那行 `sed` 會四個都加。這樣沒問題，但**要知道自己改了幾行**。
 
-# 5. 還原
+#### 開機後：三件事全部如預期
+
+```bash
+$ tr ' ' '\n' < /proc/cmdline | grep rknpu
+rknpu.bypass_irq_handler=1
+
+$ grep fdab0000.npu /proc/interrupts
+（沒有輸出 —— 整行消失了）
+
+$ sudo dmesg | grep -i rknpu
+[13.847675] RKNPU fdab0000.npu: Adding to iommu group 0
+[13.847788] RKNPU fdab0000.npu: RKNPU: rknpu iommu is enabled, using iommu mode
+[13.848924] RKNPU fdab0000.npu: can't request region for resource [mem 0xfdab0000-0xfdabffff]
+[13.848999] RKNPU fdab0000.npu: RKNPU: bypass irq handler!        ← ★
+[13.849237] [drm] Initialized rknpu 0.9.8 20240828 for fdab0000.npu on minor 1
+```
+
+`bypass irq handler!` 就是 `rknpu_drv.c:1397` 那行 `LOG_DEV_WARN`。
+而且它出現在 `[drm] Initialized` **之前** —— 對得上 probe 的順序
+（中斷註冊在 `:1392`，DRM 註冊在 `:1401`）。
+
+**裝置節點照樣開出來，debugfs 照樣可讀。** 只有中斷沒了。
+
+#### 然後跑推論
+
+```bash
+$ time ./exp05_run mobilenet_v1.rknn 1 1
+rknn_run x1 -> -1                       ← 失敗
+耗時: 6.57 秒                            ← 正常是 0.1 秒
+```
+
+`dmesg` 裡的屍體，一行一行都能指回程式碼：
+
+```
+RKNPU: job: 0000000050e3ec26, mask: 0x1, job iommu domain id: 0, dev iommu domain id: 0,
+       wait_count: 1, continue wait: 0, commit elapse time: 6144740us,
+       wait time: 6144745us, timeout: 6000000us
+RKNPU: failed to wait job, task counter: 0, flags: 0x5, ret = 0, elapsed time: 6144800us
+RKNPU: job timeout, flags: 0x0:
+RKNPU: 	core 0 irq status: 0x200, raw status: 0xc0000200, require mask: 0x300,
+        task counter: 0x0, elapsed time: 6251420us
+RKNPU: soft reset, num: 6
+```
+
+| dmesg | 出自 | 說明 |
+|---|---|---|
+| `job: ... wait_count: 1 ... timeout: 6000000us` | `rknpu_job_wait()`（`rknpu_job.c:204`） | SDK 設的逾時是 **6 秒** |
+| `failed to wait job` | `rknpu_job_wait()`（`:265`） | 回 `-ETIMEDOUT` |
+| `job timeout, flags: 0x0` | 逾時清理 | |
+| `soft reset, num: 6` | `rknpu_soft_reset()` | 驅動自己救回來（[ch09](./ch09_reset.md)） |
+
+#### ★ 最有價值的一行
+
+```
+core 0 irq status: 0x200, raw status: 0xc0000200, require mask: 0x300
+```
+
+**`irq status = 0x200` = bit 9 = DPU group 1。**
+
+**硬體其實算完了。** 它把中斷線拉起來、把狀態寫進 `INT_STATUS`，
+規規矩矩做完該做的事 —— **只是沒有人在聽。**
+
+這就是這個實驗真正證明的事：
+
+> **中斷不是「效能優化」，是硬體通知軟體的唯一管道。**
+> 拿掉它，計算照常完成，但軟體永遠不知道。
+
+（順帶一提：`require mask: 0x300` 要 bit 8+9，實際只有 bit 9 —— 
+這正是 [§3](#3-中斷處理程式40-行看完) 講的 `rknpu_fuzz_status()`
+要把 group 0/1 模糊化的原因。）
+
+#### 還原
+
+```bash
 sudo cp /boot/extlinux/extlinux.conf.bak /boot/extlinux/extlinux.conf
 sudo reboot
 ```
 
-**這個實驗需要重開機兩次，本書尚未執行。**
-風險不高（系統照常開機，只有 NPU 會逾時），
-但改開機設定要自己確認過再做。
+還原後確認：
 
-預期看到的東西已經從程式碼推得出來：
-`rknpu_probe()` 會走 `LOG_DEV_WARN(dev, "bypass irq handler!\n")` 那一支
-（`rknpu_drv.c:1397`），`rknpu_job_wait()` 會等到 `args->timeout` 逾時、
-重試 3 輪、印出那則很長的 `LOG_ERROR`，最後回 `-ETIMEDOUT`。
+```bash
+$ grep fdab0000.npu /proc/interrupts
+ 40:  0  0 ... GICv3 142 Level   fdab9000.iommu, fdab0000.npu     ← 回來了
+$ ./exp05_run mobilenet_v1.rknn 1 100
+rknn_run x100 -> 0
+中斷 0 -> 200                                                      ← 100 次推論 = 200 中斷
+```
+
+**完全恢復。**
 
 ---
 
@@ -529,26 +606,84 @@ sudo reboot
  40:  ...  GICv3 142 Level   fdab9000.iommu, fdab0000.npu
 ```
 
-[ch02](./ch02_probe.md) 找到原因：驅動註冊時給了 `IRQF_SHARED`（`rknpu_drv.c:1113`）。
+[ch02](./ch02_probe.md) 找到原因：註冊時給了 `IRQF_SHARED`（`rknpu_drv.c:1113`）。
 
-**共用中斷的規矩是：中斷來的時候，掛在這條線上的每一個處理程式都會被呼叫。**
-每個處理程式要自己判斷「是不是我的」，不是的話回 `IRQ_NONE`，讓核心去問下一個。
+**共用中斷的規矩**：中斷來的時候，掛在這條線上的**每一個**處理程式都會被叫。
+每個要自己判斷「是不是我的」，不是的話回 `IRQ_NONE`。
 
-但 `rknpu_irq_handler()` 有三個 `return`，**全部是 `IRQ_HANDLED`**
-—— 包括「這顆核心沒有 job」和「狀態不對」這兩條路。
+如果**所有**處理程式都說「不是我的」，而中斷又是 level-triggered
+（拉著就不會停），核心就會陷入無限重入。
+Linux 對此有保護：**連續 100000 次沒人認領，就把整條線關掉。**
 
-而且在「沒有 job」那條路上，它還是會寫：
+### 實驗 7.4 意外拍到了這件事發生
 
-```c
-		REG_WRITE(RKNPU_INT_CLEAR, RKNPU_OFFSET_INT_CLEAR);
+回頭看 7.4 那次 `dmesg`，在 RKNPU 逾時**之前**還有這一段：
+
+```
+[63.845661] irq 40: nobody cared (try booting with the "irqpoll" option)
+[63.845706] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 6.1.115+ #1
+[63.845715] Hardware name: Radxa ROCK 5B (DT)
+            ...
+[63.846023] handlers:
+[63.846035] [<00000000596f15af>] rk_iommu_irq
+[63.846059] Disabling IRQ #40
 ```
 
-> **本書只做觀察。** 這段程式碼在什麼情況下會出問題、會不會實際發生，
-> 需要另外設計實驗才能回答（例如故意製造 IOMMU 頁面錯誤）。
-> **沒驗證過的事不寫成結論。**
+事情的經過：
+
+```
+① NPU 算完，把中斷線拉起來（level，不清就不放）
+② rknpu 的處理程式沒註冊（bypass_irq_handler=1）→ 沒人去清 INT_CLEAR
+③ 線一直拉著 → 核心不斷去問還在線上的 rk_iommu_irq
+④ rk_iommu_irq 說「不是我的」→ 回 IRQ_NONE
+⑤ 重複 100000 次
+⑥ 核心放棄：irq 40: nobody cared → Disabling IRQ #40
+```
+
+`/proc/interrupts` 留下的痕跡：
+
+```
+ 40:  100000  0 0 0 0 0 0 0   GICv3 142 Level   fdab9000.iommu
+     └─ 正好 100000 次           └─ 只剩 IOMMU，rknpu 不在了
+```
+
+**`100000` 就是核心的放棄門檻**，不多不少。
+
+再往後還有一則：
+
+```
+WARNING: CPU: 0 PID: 0 at drivers/iommu/rockchip-iommu.c:762 rk_iommu_irq+0x50/0xb0
+```
+
+看那一行（`drivers/iommu/rockchip-iommu.c:760`）：
+
+```c
+	err = pm_runtime_get_if_in_use(iommu->dev);
+	if (WARN_ON_ONCE(err <= 0))
+		return ret;
+```
+
+NPU 逾時後被關電，IOMMU 也跟著 runtime suspend。
+但中斷線還拉著，`rk_iommu_irq` 被叫進來，發現裝置根本沒在跑 → 警告。
+
+### 這代表什麼
+
+**共用中斷線把兩個裝置綁在一起了。**
+
+一個裝置的處理程式沒註冊，**另一個裝置的中斷線也一起被關掉。**
+
+> 這不是設計缺陷 —— 硬體本來就把兩者接到同一根線（[ch01](./ch01_hardware.md) §5），
+> 軟體沒得選。但它說明了為什麼 `IRQF_SHARED` 的處理程式
+> **必須誠實地回 `IRQ_NONE`**。
+
+順帶回頭看 `rknpu_irq_handler()`：它有三個 `return`，**全部是 `IRQ_HANDLED`**
+—— 包括「這顆核心沒有 job」那條路，而且那條路還是會寫 `INT_CLEAR`。
+
+> **本書只做觀察，不下結論。** 這段程式碼在什麼情況下會出問題、
+> 會不會實際發生，需要另外設計實驗（例如故意製造 IOMMU 頁面錯誤）才能回答。
 >
-> 但「讀到 `IRQF_SHARED` 就要去看處理程式怎麼回傳」
-> 是讀任何 driver 都該有的反射動作。
+> 但「看到 `IRQF_SHARED` 就去確認處理程式怎麼回傳」
+> 已經被實驗 7.4 證明是值得養成的反射動作。
 
 ---
 
@@ -569,6 +704,7 @@ sudo reboot
 | 11 | ch06 | TRM §36.5.4 步驟 4 只說 write `pc_op_enable` | 驅動寫 `1` 後又寫 `0` | TRM 沒寫，待查 |
 | 12 | **ch07** | TRM §36.5.3 說有 **17 種**事件，欄位也是 `16:0` | §36.4.3 只列到 **bit 13**（14 種） | **TRM 少列了 bit 14~16**，待查 |
 | 13 | **ch07** | 模組參數 `bypass_irq_handler` 權限 `0644`，看似執行時可調 | 只在 `rknpu_probe()` 讀取，執行時改**完全無效** | **權限位元造成誤導**（非 TRM 問題） |
+| 14 | **ch07** | — | `rknpu_irq_handler()` 三個 `return` 全是 `IRQ_HANDLED`，即使「這顆核心沒有 job」也一樣，且該路徑仍寫 `INT_CLEAR` | **只做觀察**。實驗 7.4 已證明共用線上「沒人認領」的後果很嚴重（`Disabling IRQ #40`），但反向情境未驗證 |
 
 ---
 
@@ -584,6 +720,10 @@ sudo reboot
 >
 > 而「一次推論 2 個中斷」這件事，
 > **`strace`、`/proc/interrupts`、`ftrace` 三種獨立方法給了同一個答案。**
+>
+> 把中斷關掉之後，`irq status = 0x200` 顯示**硬體照樣算完了** ——
+> **中斷不是效能優化，是硬體通知軟體的唯一管道。**
+> 而且共用中斷線讓 NPU 的沉默連累了 IOMMU：核心直接 `Disabling IRQ #40`。
 
 ---
 
@@ -594,7 +734,7 @@ sudo reboot
 | 7.1 | ftrace `function_graph` 追中斷處理 | 完整呼叫鏈到 `__wake_up() → try_to_wake_up()`；`<idle>-0` 證明行程確實睡著了 |
 | 7.2 | 中斷計數 vs 推論次數 | 20 次推論 = 40 個中斷；ftrace 也數到 2 次／推論 |
 | 7.3 | 執行時寫 `bypass_irq_handler=1` | **無效**。只在 probe 讀取，`0644` 是誤導 |
-| ⏳ 7.4 | 用開機參數真的關掉中斷 | 需重開機兩次，**尚未執行**（步驟已寫在 §6） |
+| 7.4 ★ | 用開機參數 `rknpu.bypass_irq_handler=1` 真的關掉 | 中斷整行消失；推論 **6.57 秒後失敗**（`-1`）；`irq status: 0x200` 證明**硬體其實算完了，只是沒人在聽**；核心因中斷風暴 `Disabling IRQ #40`（正好 100000 次）|
 
 ---
 
