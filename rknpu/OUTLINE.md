@@ -94,7 +94,11 @@ RK3588 的 NPU 是三顆核心，每顆裡面有 CNA（捲積）、DPU（資料�
 ### ch02 — 開機：從 device tree 到一個能用的裝置
 
 `rknpu_probe()` 逐行走一次。時脈、電源域、中斷、IOMMU、devfreq 是怎麼一個一個接起來的，
-以及最後那兩行 —— 註冊成 DRM 裝置，順便也註冊了一個 misc 裝置當備用門。
+以及開機 log 的每一行分別對應哪一段程式碼。
+
+> 📌 **2026-09-07 修正**：原本寫「註冊成 DRM 裝置，順便也註冊一個 misc 裝置當備用門」——
+> **錯的**。兩者是 Kconfig `choice` 下的互斥 `#ifdef` 分支，開機只會走其中一條。
+> 本機走 DRM GEM，`/dev/rknpu` 根本不存在。
 
 | 對照原始碼 | `rknpu_drv.c`（probe 主體、`:867` `drm_dev_register`、`:1409` `misc_register`）、`drivers/rknpu/Kconfig`（兩道門的 choice） |
 |---|---|
