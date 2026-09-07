@@ -26,7 +26,15 @@ static void *slurp(const char *path, uint32_t *len)
 
 int main(int argc, char **argv)
 {
-	if (argc < 2) { fprintf(stderr, "用法: %s <model.rknn>\n", argv[0]); return 1; }
+	if (argc < 2) {
+		fprintf(stderr,
+			"用法: %s <model.rknn> [core_mask] [次數]\n"
+			"  core_mask: 0=AUTO(預設) 1=core0 2=core1 4=core2 3=core0+1 7=三核\n",
+			argv[0]);
+		return 1;
+	}
+	int want_mask = argc > 2 ? atoi(argv[2]) : -1;
+	int loops     = argc > 3 ? atoi(argv[3]) : 1;
 
 	uint32_t mlen = 0;
 	void *model = slurp(argv[1], &mlen);
@@ -36,6 +44,11 @@ int main(int argc, char **argv)
 	int ret = rknn_init(&ctx, model, mlen, 0, NULL);
 	free(model);
 	if (ret < 0) { fprintf(stderr, "rknn_init 失敗: %d\n", ret); return 1; }
+
+	if (want_mask >= 0) {
+		ret = rknn_set_core_mask(ctx, (rknn_core_mask)want_mask);
+		printf("rknn_set_core_mask(%d) -> %d\n", want_mask, ret);
+	}
 
 	rknn_input_output_num ion;
 	rknn_query(ctx, RKNN_QUERY_IN_OUT_NUM, &ion, sizeof(ion));
@@ -65,8 +78,11 @@ int main(int argc, char **argv)
 	ret = rknn_inputs_set(ctx, ion.n_input, inputs);
 	if (ret < 0) { fprintf(stderr, "rknn_inputs_set 失敗: %d\n", ret); return 1; }
 
-	ret = rknn_run(ctx, NULL);
-	printf("rknn_run -> %d\n", ret);
+	for (int n = 0; n < loops; n++) {
+		ret = rknn_run(ctx, NULL);
+		if (ret < 0) { fprintf(stderr, "rknn_run 失敗: %d\n", ret); break; }
+	}
+	printf("rknn_run x%d -> %d\n", loops, ret);
 
 	for (uint32_t i = 0; i < ion.n_input; i++) free(bufs[i]);
 	free(bufs); free(inputs);
