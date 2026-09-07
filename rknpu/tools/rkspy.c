@@ -147,6 +147,52 @@ void *mmap64(void *a,size_t l,int p,int f,int fd,off_t off){
 	init(); void *r = real_mmap(a,l,p,f,fd,off); note_map(r,off); return r;
 }
 
+
+/* 在一個 task 的 regcmd 裡找某個暫存器 offset，回傳它被寫入的值。
+ * regcmd 每筆 8 bytes：[15:0]=offset、[47:16]=值、[63:48]=區塊標籤。 */
+static int regcmd_find(struct rknpu_task *tk, unsigned want, uint32_t *out)
+{
+	int ri = find_by_dma(tk->regcmd_addr);
+	if (ri < 0 || !bufs[ri].va) return 0;
+	uint64_t *e = (uint64_t *)(bufs[ri].va + (tk->regcmd_addr - bufs[ri].dma_addr));
+	uint32_t n = tk->regcfg_amount + 4;
+	for (uint32_t i = 0; i < n; i++) {
+		if ((unsigned)(e[i] & 0xffff) == want) {
+			*out = (uint32_t)((e[i] >> 16) & 0xffffffffULL);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* 從 CNA 的 data_size 暫存器還原每一層的張量形狀。
+ *   0x1020 RKNN_cna_data_size0: [26:16]=datain_width, [10:0]=datain_height
+ *   0x1024 RKNN_cna_data_size1: [29:16]=datain_channel_real, [15:0]=datain_channel
+ */
+static void dump_shapes(struct rknpu_submit *s, struct rknpu_task *t)
+{
+	fprintf(lg,"\n  === 每個 task 的輸入張量形狀（從 CNA 暫存器還原）===\n");
+	fprintf(lg,"  %-5s %-7s %-8s %6s %6s %8s %8s\n",
+		"task","op_idx","regcfg","width","height","ch","ch_real");
+	int prev_op = -1;
+	for (uint32_t k = 0; k < s->task_number; k++) {
+		struct rknpu_task *tk = &t[s->task_start + k];
+		uint32_t sz0 = 0, sz1 = 0;
+		int has0 = regcmd_find(tk, 0x1020, &sz0);
+		int has1 = regcmd_find(tk, 0x1024, &sz1);
+		if ((int)tk->op_idx != prev_op && prev_op >= 0)
+			fprintf(lg,"  %s\n","  ----");
+		prev_op = tk->op_idx;
+		fprintf(lg,"  %-5u %-7u %-8u", s->task_start + k, tk->op_idx, tk->regcfg_amount);
+		if (has0) fprintf(lg," %6u %6u", (sz0 >> 16) & 0x7ff, sz0 & 0x7ff);
+		else      fprintf(lg," %6s %6s", "-", "-");
+		if (has1) fprintf(lg," %8u %8u", sz1 & 0xffff, (sz1 >> 16) & 0x3fff);
+		else      fprintf(lg," %8s %8s", "-", "-");
+		fprintf(lg,"\n");
+	}
+	fflush(lg);
+}
+
 static void dump_submit(struct rknpu_submit *s){
 	fprintf(lg,"\n================ SUBMIT #%d ================\n",++submit_seen);
 	fprintf(lg,"flags=0x%x task_start=%u task_number=%u core_mask=0x%x fence_fd=%d\n",
@@ -167,7 +213,9 @@ static void dump_submit(struct rknpu_submit *s){
 		(unsigned long long)bufs[ti].va,(unsigned long long)bufs[ti].dma_addr,
 		(unsigned long long)bufs[ti].size);
 
-	uint32_t n = s->task_number; if(n>8) n=8;   /* 只印前 8 個 */
+	const char *rawenv = getenv("RKSPY_RAW");
+	uint32_t rawn = rawenv ? (uint32_t)atoi(rawenv) : 3;
+	uint32_t n = s->task_number; if(n>rawn) n=rawn;
 	for(uint32_t k=0;k<n;k++){
 		struct rknpu_task *tk = &t[s->task_start+k];
 		fprintf(lg,"\n  --- task[%u] op_idx=%u regcfg_amount=%u regcfg_offset=%u regcmd_addr=0x%llx int_mask=0x%x\n",
@@ -194,6 +242,8 @@ static void dump_submit(struct rknpu_submit *s){
 				(unsigned)((e>>48) & 0xffff));
 		}
 	}
+
+	dump_shapes(s, t);
 	fflush(lg);
 }
 
