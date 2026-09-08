@@ -33,6 +33,8 @@
 - [4. 實驗 9.1：手動觸發，用暫存器證明它真的重置了](#4-實驗-91手動觸發用暫存器證明它真的重置了)
 - [5. 實驗 9.2：`reset` 這個節點其實有三種用法](#5-實驗-92reset-這個節點其實有三種用法)
 - [6. 真實的逾時現場](#6-真實的逾時現場)
+- [7. 一個沒寫在任何文件裡的地雷：`unbind` 會掛核心](#7-一個沒寫在任何文件裡的地雷unbind-會掛核心)
+- [8. 做危險實驗前，先給自己一張網](#8-做危險實驗前先給自己一張網)
 - [TRM 與實機對不上的地方（完整版）](#trm-與實機對不上的地方完整版)
 - [本章結論一句話](#本章結論一句話)
 - [全書回顧](#全書回顧)
@@ -452,9 +454,215 @@ RKNPU: soft reset, num: 6
 
 ---
 
+## 7. 一個沒寫在任何文件裡的地雷：`unbind` 會掛核心
+
+> 這一節是 2026-09-08 想做 [ch04](./ch04_memory.md) 的 dma-fence 實驗時，
+> **意外撞出來的**。
+
+### 起因
+
+`CONFIG_ROCKCHIP_RKNPU_FENCE` 沒開，但板子上有完整的 kernel source
+（`/lib/modules/$(uname -r)/build` 指向 `~/disk/kernel-source`），
+而且裡面的 `drivers/rknpu` 跟本書對照的樹**完全一樣**（同為 v0.9.8）。
+
+所以有一條看起來很乾淨的路：**把驅動編成外掛模組，換掉內建的。**
+
+```bash
+cp -r ~/disk/kernel-source/drivers/rknpu ~/rknpu-lab/mod && cd ~/rknpu-lab/mod
+sed -i 's/\.name = "RKNPU",/.name = "RKNPULAB",/' rknpu_drv.c   # 避免 sysfs 撞名
+cat > Makefile <<'MK'
+obj-m += rknpulab.o
+ccflags-y += -I$(src)/include
+ccflags-y += -DCONFIG_ROCKCHIP_RKNPU_FENCE=1
+ccflags-y += -DCONFIG_ROCKCHIP_RKNPU_SRAM=1
+rknpulab-y += rknpu_drv.o rknpu_reset.o rknpu_job.o rknpu_debugger.o
+rknpulab-y += rknpu_iommu.o rknpu_devfreq.o rknpu_gem.o rknpu_fence.o rknpu_mm.o
+MK
+make -C /lib/modules/$(uname -r)/build M=$PWD modules
+```
+
+編得起來（119 KB 的 `rknpulab.ko`），但要先解掉三個連結問題：
+
+| 問題 | 原因 | 解法 |
+|---|---|---|
+| `rknpu_devfreq_*` exported twice | 內建的 vmlinux 已經匯出同名符號 | 把我們這份的 `EXPORT_SYMBOL` 刪掉 |
+| `rknpu_mm_*` undefined | `rknpu_gem.c` 用 `IS_ENABLED()` 引用了它們 | 把 `rknpu_mm.o` 也加進去 |
+| `iommu_get_dma_cookie` undefined | **核心沒有把它匯出給模組** | 那條路只在「新建 iommu domain」時走，實機永遠是 domain 0，直接封掉 |
+
+### 然後就掛了
+
+```bash
+echo fdab0000.npu > /sys/bus/platform/drivers/RKNPU/unbind
+```
+
+**板子當場失去回應。** 第一次還得人工斷電。
+
+### 怎麼確定是 `unbind` 而不是模組
+
+第一次掛掉時什麼線索都沒有 —— `pstore` 空的、`journald` 來不及寫入。
+所以第二次改用**麵包屑**：每一步寫進磁碟並 `sync`，硬重開也留得下來。
+
+```bash
+T=~/rknpu-lab/trace.log
+say(){ echo "[$(date +%T)] $*" >> $T; sync; }      # ★ 每一步都 sync
+
+say "step1: 準備 unbind"
+echo fdab0000.npu > /sys/bus/platform/drivers/RKNPU/unbind
+say "step2: unbind 回來了"
+```
+
+重開之後撈檔案：
+
+```
+[21:14:08] === 開始 ===
+[21:14:08] step1: 準備 unbind 內建驅動
+```
+
+**`step2` 從來沒被寫出來。** `unbind` 那一行就是終點。
+
+> 第一次我以為是自己改的模組有問題 —— **錯了，模組根本沒機會被載入。**
+> 沒有麵包屑就只能猜，猜就會怪錯人。
+
+### 可疑的候選（**未證實**）
+
+`unbind` 會呼叫 `rknpu_remove()`。裡面這一段值得看
+（`rknpu_devfreq.c:794`）：
+
+```c
+void rknpu_devfreq_remove(struct rknpu_device *rknpu_dev)
+{
+	...
+	if (rknpu_dev->devfreq)
+		devfreq_remove_governor(&devfreq_rknpu_ondemand);
+	...
+}
+```
+
+它在 devfreq 裝置**還活著的時候**，去移除一個**全域註冊**的 governor。
+而那個 governor 每 50 ms 就會被輪詢一次（`npu_devfreq_profile.polling_ms = 50`，
+見 [ch08](./ch08_power_freq.md) §4）。
+
+**這只是一個看起來可疑的地方，不是結論。**
+要證實需要當機當下的 console 輸出（例如架 netconsole 把核心訊息串到另一台機器）
+或 lockdep 報告。**本書沒有做到，所以不下定論。**
+
+### 這件事的意義
+
+| | |
+|---|---|
+| 有多可靠 | 兩次都掛，麵包屑證明卡在同一行 |
+| 影響 | **不能用 unbind／rebind 來換這個驅動。** 想改驅動只能重編整個核心，或走下面那條路 |
+| 文件有寫嗎 | TRM 不管作業系統的事；驅動本身沒有任何註解或警告 |
+
+### 繞開它的辦法（沒實作，但路是通的）
+
+不要 unbind —— **用 device tree overlay 把 NPU 的 `compatible` 換掉**：
+
+```dts
+&rknpu {
+	compatible = "rockchip,rk3588-rknpu-lab";
+};
+```
+
+內建驅動比對不到就不會去碰這個裝置（`rknpu_drv.c:299` 的 `of_match` 表）。
+自己的模組把這個字串加進 `of_match` 就能接手。
+
+**最大的好處：失敗也不會掛。** 最壞情況是 NPU 不能用，
+拿掉 overlay 重開就好。
+
+---
+
+## 8. 做危險實驗前，先給自己一張網
+
+上面那次當機的真正代價，不是浪費時間，是**得有人去按電源鍵**。
+
+RK3588 有硬體看門狗，只是 device tree 裡預設關著（`rk3588s.dtsi:6139`）：
+
+```dts
+	wdt: watchdog@feaf0000 {
+		compatible = "snps,dw-wdt";
+		reg = <0x0 0xfeaf0000 0x0 0x100>;
+		status = "disabled";          /* ← */
+	};
+```
+
+`CONFIG_DW_WATCHDOG=y`（驅動已經編進核心），所以只要一個 overlay 就能打開。
+
+### 安全地做這件事
+
+**關鍵是：改 device tree 之前，先離線驗證合併結果。**
+
+```bash
+cat > enable-wdt.dts <<'DTS'
+/dts-v1/;
+/plugin/;
+&wdt {
+	status = "okay";
+};
+DTS
+dtc -@ -I dts -O dtb -o enable-wdt.dtbo enable-wdt.dts
+
+# ★ 先套用到 dtb 副本，確認只改了該改的
+cp /usr/lib/linux-image-$(uname -r)/rockchip/rk3588-rock-5b.dtb base.dtb
+fdtoverlay -i base.dtb -o merged.dtb enable-wdt.dtbo
+dtc -I dtb -O dts base.dtb   > base.dts
+dtc -I dtb -O dts merged.dtb > merged.dts
+diff base.dts merged.dts
+```
+
+```
+6125c6125
+< 		status = "disabled";
+---
+> 		status = "okay";
+```
+
+**12791 行對 12791 行，只有這一行不同。** 確認到這個程度再重開，心裡才踏實。
+
+裝上去（Radxa 的 overlay 機制）：
+
+```bash
+sudo cp enable-wdt.dtbo /boot/dtbo/
+sudo u-boot-update              # 會在 extlinux.conf 加一行 fdtoverlays
+sudo reboot
+```
+
+重開之後：
+
+```
+$ wdctl
+Device:        /dev/watchdog0
+Identity:      Synopsys DesignWare Watchdog [version 0]
+Timeout:       44 seconds
+MAGICCLOSE     Supports magic close char      0
+```
+
+### ⚠️ 但我沒能證明它真的會咬
+
+測試方式是：餵一段時間，然後停止餵食，看板子會不會在 44 秒後自己重開。
+
+**測了兩次都沒有重開。**
+
+第一次的原因很清楚，是我自己的錯 —— 餵狗程式**結束時關掉了檔案**。
+`CONFIG_WATCHDOG_NOWAYOUT is not set`，所以關檔案時核心會順手把看門狗停掉。
+「程式結束」不等於「模擬當機」。
+
+第二次改成**抱著 fd 不放、只停止餵食**，等了 110 秒（超過 44 秒兩倍），
+**還是沒有重開。**
+
+**原因不明。** 可能還有別的環節（例如需要先寫入 timeout 才會真正啟動），
+但本書沒有查出來。
+
+> **所以請不要把這一節當成「照做就有保險」。**
+> 它示範的是**驗證 device tree 改動的方法**（那部分很紮實），
+> 以及**麵包屑除錯法**（那部分救了我們一次）。
+> 看門狗本身，**還沒被證明有效**。
+
+---
+
 ## TRM 與實機對不上的地方（完整版）
 
-全書累積，19 筆。
+全書累積，20 筆。
 
 | # | 章 | 說法來源 | 實機／程式碼 | 判斷 |
 |---|---|---|---|---|
@@ -477,6 +685,7 @@ RKNPU: soft reset, num: 6
 | 16 | ch08 | dtsi 基準說 1 GHz 要 850 mV | 實測 825 mV = `opp-microvolt-L2` | 不是落差，是體質分級 |
 | 17 | **ch09** | TRM §36.5.2 說兩個 reset 訊號 **"must be release at the same time"** | 驅動用 `for` 迴圈**一個一個放開**，core0 的 A/H 中間隔 3 次寫入 | **驅動與 TRM 不一致**。實測沒出問題，但不等於符合規格 |
 | 18 | **ch09** | TRM 說 `RKNN_pc_base_address` reset value 是 `0x0` | 軟重置後讀到 `0x1`（與 ch01 閒置時觀察一致） | 待查 |
+| 19 | **ch09** | 沒有任何文件提到 | **`echo fdab0000.npu > .../RKNPU/unbind` 會讓核心失去回應**，兩次重現，麵包屑證明卡在該行 | **驅動缺陷（觀察）**。可疑處是 `rknpu_devfreq_remove()` 在裝置仍活著時移除全域 governor，**未證實**（§7） |
 
 ### 另外，本書自己修正過的地方
 
@@ -513,6 +722,8 @@ RKNPU: soft reset, num: 6
 | 9.2 | `reset` 節點的三種語意 | 寫 `1` 觸發（需先開電）、`on`/`off` 切換 bypass；讀值是「功能開著嗎」。與 `bypass_irq_handler` 不同，**這個執行時改得動** |
 | 9.3 | 重置後還能不能用 | 50 次推論全部正常 |
 | — | 真實逾時現場 | 沿用 [ch07](./ch07_interrupt.md) 實驗 7.4 的 `dmesg`，逐行對回程式碼 |
+| 9.4 | 把驅動編成外掛模組，`unbind` 內建的換上去 | **失敗**：`unbind` 就把核心弄掛。用麵包屑證明卡在該行（§7） |
+| 9.5 | 用 overlay 啟用硬體看門狗當保險 | overlay 裝成功、`/dev/watchdog0` 出現，**但沒能證明它會咬**（§8） |
 
 ---
 
@@ -551,7 +762,9 @@ RKNPU: soft reset, num: 6
 3. **跑完實驗去 `dmesg` 撿屍體。** 驅動留下的線索比想像中多。
 4. **看到模組參數，grep 它被讀在哪、寫在哪。** 權限位元不保證任何事。
 5. **看不懂的 log 通常藏著最有意思的事。** 那三行 `can't request region` 就是。
-6. **找不到就說找不到。** 全書 18 筆落差，其中 6 筆的結論是「待查」。
+6. **找不到就說找不到。**
+7. **做會弄掛核心的事之前，先想好「掛了怎麼知道走到哪」。**
+   麵包屑（每步 `sync` 到磁碟）救了我們一次 —— 沒有它就只會怪錯人。 全書 18 筆落差，其中 6 筆的結論是「待查」。
 
 ---
 

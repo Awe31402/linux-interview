@@ -466,7 +466,52 @@ NPU 眼中（IOVA）                     真正的實體記憶體
 所以 `rknpu_fence.c` 那套 **dma-fence**（「我還在算，你先別碰」的同步旗標）
 本機跑不到，實測 `SUBMIT` 的 `fence_fd` 永遠是 `-1`。
 
-要玩得重編 kernel。本章只點到為止。
+同樣沒開的還有 `CONFIG_ROCKCHIP_RKNPU_SRAM`（`rknpu_mm.c` 那個 SRAM 小配置器）。
+
+**2026-09-08 追記：我們試著把這兩個打開，沒有成功。** 過程中挖到的東西反而更值得寫：
+
+#### ① SRAM 不只是開個 config —— 記憶體早就被瓜分完了
+
+就算把 `CONFIG_ROCKCHIP_RKNPU_SRAM` 打開，驅動也找不到 SRAM。
+因為 `rknpu_find_sram_resource()`（`rknpu_drv.c:1155`）是這樣找的：
+
+```c
+	sram_node = of_parse_phandle(dev->of_node, "rockchip,sram", 0);
+	rknpu_dev->sram_size = 0;
+	if (!sram_node)
+		return -EINVAL;
+```
+
+而 **NPU 的 device tree 節點根本沒有 `rockchip,sram` 這個屬性**
+（實機 `/proc/device-tree/npu@fdab0000/` 裡找不到）。
+
+再看晶片上的 SRAM 怎麼分的（`rk3588s.dtsi:6864`）：
+
+```dts
+	syssram: sram@ff001000 {
+		compatible = "mmio-sram";
+		reg = <0x0 0xff001000 0x0 0xef000>;       /* 總共 956 KB */
+
+		rkvdec0_sram: rkvdec-sram@0     { reg = <0x0     0x78000>; };   /* 480 KB */
+		rkvdec1_sram: rkvdec-sram@78000 { reg = <0x78000 0x77000>; };   /* 476 KB */
+	};
+```
+
+`0x78000 + 0x77000 = 0xef000` —— **956 KB 全部分給兩個視訊解碼器，一個位元組都沒剩。**
+
+> **要讓 NPU 用 SRAM，得從視訊解碼器手上挖一塊過來。**
+> 那是一個設計取捨（NPU 快一點 vs 影片解碼慢一點），不是「打開一個開關」。
+>
+> 這件事 TRM 完全沒提 —— SRAM 分配是 SoC 整合層級的事，不歸 §36 管。
+
+#### ② 想換掉驅動來測 fence？`unbind` 會把核心弄掛
+
+fence 只需要重編驅動，不用改 device tree。板子上剛好有完整的 kernel source
+（`/lib/modules/$(uname -r)/build`），所以我們把 `drivers/rknpu` 拉出來，
+加上 `-DCONFIG_ROCKCHIP_RKNPU_FENCE=1` 編成外掛模組，
+打算 `unbind` 內建驅動之後 `insmod` 我們的。
+
+**`unbind` 那一步就把板子弄掛了。** 詳見 [ch09](./ch09_reset.md) §7。
 
 ---
 
@@ -554,8 +599,8 @@ NPU 眼中（IOVA）                     真正的實體記憶體
 | 4.1 | 五塊記憶體的完整總表 | [`tools/rkspy.c`](./tools/rkspy.c) | 三個名字並列；只有 task 陣列有 `KERNEL_MAPPING` |
 | 4.2 ★ | `/proc/self/pagemap` 挖實體位址 | 同上 | **IOVA 每次 +0x1000，實體位址完全亂跳** |
 | 4.3 | 確認 IOMMU 開著 | — | `dmesg` 有 `Adding to iommu group 0`；`GET_IOMMU_EN` 回 `1` |
-| ⏳ | dma-fence | — | `CONFIG_ROCKCHIP_RKNPU_FENCE` 沒開，需重編 kernel |
-| ⏳ | SRAM 配置器 | — | `CONFIG_ROCKCHIP_RKNPU_SRAM` 沒開，需重編 kernel |
+| ⏳ | dma-fence | — | config 沒開。試過用外掛模組繞過，但 `unbind` 會掛核心（[ch09](./ch09_reset.md) §7） |
+| ⏳ | SRAM 配置器 | — | config 沒開，**而且 956 KB SRAM 已全數分給兩個視訊解碼器**，還需要改 device tree 挖一塊給 NPU |
 
 ---
 
