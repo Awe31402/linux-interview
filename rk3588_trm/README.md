@@ -13,12 +13,16 @@
 | D 音訊 | [D_audio.md](./D_audio.md) | P1 ch22/23/24/27/28/39 | ✅ |
 | E 安全 | [E_security.md](./E_security.md) | P1 ch33、P2 ch10 | ✅ |
 | F 儲存與高速介面 | [F_storage_highspeed.md](./F_storage_highspeed.md) | P2 ch2/3/4/11/12/13/14/15/16、P1 ch25 | ✅ |
-| G 多媒體 | [G_multimedia.md](./G_multimedia.md) | P1 ch5/37/38、P2 ch5/6/7/8 | ✅ |
-| H 顯示與相機介面 | — | P2 ch9/17/18/19/20/21/22/23/24/25/26/27/28 | ⏳ |
+| G 多媒體 | [G_multimedia.md](./G_multimedia.md) | P1 ch5/37/38、P2 ch5/6/8 | ✅ |
+| H 顯示、相機介面、PVTM/PVTPLL | [H_display_camera_pvt.md](./H_display_camera_pvt.md) | P2 ch7/9/17/18/19/20/21/22/23/24/25/26/27/28 | ✅ |
 
-（P2 ch17 PVTM、ch18 PVTPLL、ch2 DMC 的一部分已在 [`rock5b_explore/`](../rock5b_explore/README.md) 做過。）
+TRM 全部 67 章（Part1 39 章 + Part2 28 章）都已歸入以上 8 組。沒接螢幕、相機、SATA、CAN 等外設的模組，筆記會寫明「無法實驗」與原因。
+P2 ch2 DMC、ch17/18 的體質分數另見 [`rock5b_explore/`](../rock5b_explore/README.md)。
 
-## 目前最重要的發現
+## 最重要的發現
+
+- **PVTPLL**：TRM 漏列的 STATUS 暫存器找到了；量測窗剛好 1 µs 所以讀值 = MHz；頻率掃描量出晶片的電壓—頻率曲線（低頻縮短振盪環、高頻加電壓），並用它內插出開機體質分數，誤差 < 1%（H §5）
+- **VPU**：H.264 硬體和 H.265 一樣快（每幀 3.76 ms），GStreamer 外掛卻隨機卡住數秒；解碼是雙核輪流（G §1）
 
 - **TSADC**：Linux 驅動用的溫度對照表和 TRM 不同；Linux 說 85°C 時，照 TRM 是 90°C（C §2）
 - **GPU**：真實 FP32 約 325 GFLOPS；連畫互相覆蓋的畫面會被 Forward Pixel Kill 跳過，算力「灌水」剛好 N 倍（B §2）
