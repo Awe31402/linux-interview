@@ -143,4 +143,129 @@ TRM Table 18-2（GRF 裡的 PVTPLL 暫存器）：
 - **HDMI TX（ch24）/ HDMI-eDP Combo PHY（ch27）**：兩路 okay，沒接螢幕，時脈關著，不能讀暫存器
 - **HDCP 2.3（ch26）**：兩個都 disabled
 - **MIPI CSI Host（ch19）/ CSI DPHY（ch20）**：控制器 okay，但沒相機、後端 VICAP disabled
-- **Writeback connector**：`card0-Writeback-1` 存在，理論上可以不接螢幕讓 VOP 輸出到記憶體來驗證 VOP，需要寫 DRM atomic 程式，**沒做**
+- **Writeback connector**：見 §7，已用它在不接螢幕的情況下驗證 VOP
+
+## 7. 不接螢幕驗證 VOP：Writeback connector 實驗（2026-09-26 補）
+
+> 工具：`tools/vop_wb/`（`wbtest.c`、`run_wb.sh`、`analyze.py`、`to_png.py`、`drm/` 核心 uapi 標頭）
+> 縮圖：`data/vop_wb/`
+
+### 7.1 原理與做法
+
+VOP2 有一個 **Writeback** 模組（TRM Part2 §7.4.6）：把某個 video port 合成好的畫面，直接寫回 DDR。
+DRM 把它包成一個 connector（`card0-Writeback-1`，type 18）。不接螢幕，也能讓 VOP 真的跑一次合成，再逐像素檢查結果。
+
+`wbtest.c` 不用 libdrm，只用核心原始碼的 uapi 標頭（`#define __user` 後直接 include）＋原生 ioctl：
+1. 開 `/dev/dri/card0`，打開 client cap：UNIVERSAL_PLANES、ATOMIC、**WRITEBACK_CONNECTORS**
+2. 建 dumb buffer 當圖層來源，填測試圖樣；再建一個 dumb buffer 當寫回目標（先填 `0x5a` 垃圾值）
+3. 一次 atomic commit：CRTC（`MODE_ID`、`ACTIVE`）＋ 圖層（`FB_ID`、`CRTC_ID`、`SRC_*`、`CRTC_*`）＋
+   Writeback connector（`CRTC_ID`、`WRITEBACK_FB_ID`、`WRITEBACK_OUT_FENCE_PTR`）
+4. `poll()` 等 out-fence → 存檔 → 關掉 CRTC
+
+**DRM master**：原本以為要 `chvt` 讓 logind 放掉主控權（板子上其實沒裝 `chvt`），結果不用切 VT 也能 commit——
+開檔時自動成為 master（`SET_MASTER` 回 EBUSY 可以不管）。Xorg 沒接螢幕，沒在用任何 CRTC，桌面與 VNC 都沒受影響。
+
+**安全網**：`run_wb.sh` 先以 magic-close 方式啟動 WDT（核心活著就代餵；萬一 VOP 把核心弄當，約 89 秒自動重開，見 A §10），
+每個情境前寫麵包屑並 `sync`。全程沒出事。
+
+### 7.2 硬體資源
+
+```
+resources: 3 crtcs, 4 connectors, 4 encoders
+  connector 215 type 18 (Writeback)   217/236 type 11 (HDMI-A)   253 type 10 (DisplayPort)
+  wb encoder possible_crtcs = 0x7
+  plane 57/98/138  type 1 (primary)  Cluster0/1/2      formats 14
+  plane 178        type 0 (overlay)  Cluster3          formats 14
+  plane 73/114/154 type 2 (cursor)   Esmart0/1/2       formats 21
+  plane 194        type 0 (overlay)  Esmart3           formats 21
+```
+
+- TRM：VOP2 有 **4** 個 video port；這台 DT 只開了 **3** 個 CRTC（VP0~2）
+- 驅動的 VP 最大輸出（`rockchip_vop2_reg.c`）：VP0 7680×4320、VP1/VP2 4096×2304、VP3 2048×1536（和 TRM 一致）
+- Writeback 最大 **1920×1080**，格式 **BGR888 / ARGB8888 / RGB565 / NV12**（`formats_wb[]`）
+  ↔ TRM §7.4.6.1：ARGB888、RGB888、RGB565、YUV420 ✅
+- 非 master 呼叫 `GETCONNECTOR` 時核心不會 `fill_modes`，所以 Writeback 回報 0 個模式；
+  `wbtest.c` 照 `vop2_wb_connector_get_modes()` 自己造兩個：1920×1080（148.5 MHz，htotal 1990、vtotal 1110 → 67.23 Hz）和 960×540
+
+### 7.3 結果總表（9 個情境全部成功）
+
+| 情境 | 設定 | 結果 |
+|------|------|------|
+| 合成（背景） | Cluster0 放 1920×1080 漸層 | 72335 個取樣點**誤差 0**，沒有任何 `0x5a` 殘留 ✅ |
+| 混色：Cluster3 + Coverage | 512×512，A=0x80、B=0xFF | B = **255** → 被當成預乘 ⚠ |
+| 混色：Cluster3 + Pre-multiplied | 同上 | B = 255（預乘）✅ |
+| 混色：**Esmart3 + Coverage** | 同上 | B = **160** = 255×0.502 + 64×0.498 ✅ |
+| 混色：Esmart3 + Pre-multiplied | 同上 | B = 255 ✅ |
+| 圖層放大 ×2 | 960×540 1-px 條紋 → 1920×1080 | 水平 **bicubic（Catmull-Rom）**、垂直 **bilinear** |
+| Writeback 水平 ÷2 | 1920 → 960 | 兩點雙線性取樣，**沒有低通 → 疊影**（條紋變 25~28，不是平均的 127） |
+| Writeback 垂直 ÷2 | 1080 → 540 | **丟掉奇數行**（全部是偶數行的值） |
+| RGB565 | 漸層 | 位元完全正確（直接截斷） ✅ |
+| NV12 | 8 條色帶 | **BT.601 limited range** |
+| BGR888 | 8 條色帶 | ⚠ **R/B 對調** |
+| 時間 | 960×540 × 10 幀 | fence 固定等 **2 個 vsync** |
+
+![Esmart3 + Coverage](data/vop_wb/wb_esmart_coverage.png)
+![Cluster3 + Coverage（被當成預乘）](data/vop_wb/wb_cluster_coverage.png)
+
+（上：Esmart3 + Coverage，正確的半透明藍；下：Cluster3 + Coverage，藍色飽和。1/4 縮圖。）
+
+### 7.4 發現 1：Coverage 混色在單視窗的 Cluster 圖層上無效
+
+驅動確實收到了 Coverage（debugfs `summary`：`Cluster3-win0 ... pixel_blend_mode[1]`；
+DRM 標準值 Pre-multiplied=0、Coverage=1、None=2，實測 enum 也是這樣）。但：
+
+```c
+/* rockchip_drm_vop2.c vop2_setup_alpha()，約 10394 行 */
+} else if (vop2_cluster_window(win)) {/* Mix output data only have pixel alpha */
+	/* The data from cluster mix is always premultiplied alpha */
+	alpha_config.src_premulti_en = true;
+```
+
+layer mixer 把 Cluster 的輸出一律當成「已預乘」。而 Cluster 內部的 mix（`vop2_setup_cluster_alpha()`，約 10224 行）
+只在 **Cluster 同時用兩個視窗**時才會照 blend mode 設定；只用 win0 時 `top_win_vpstate = NULL`，沒人把顏色先乘上 alpha。
+→ 不預乘的 ARGB 圖（Coverage）放在單視窗 Cluster 圖層上，會被當成預乘來混，半透明區域變亮、飽和。
+**換成 Esmart 圖層就正確**（實測 B=160，平均誤差 0.75）。
+（原因是從程式碼推論，實測結果和推論一致。）
+
+### 7.5 發現 2：只有 Writeback 時，像素時脈只有 9.28 MHz
+
+dmesg：
+
+```
+vop2_crtc_atomic_enable] Update mode to 1920x1080p67, type: 0(if:, flag:0x0) for vp0 dclk: 148500000
+vop2_crtc_atomic_enable] set dclk_vop0 to 0, get 9281250
+```
+
+Writeback 不是實體輸出介面（`type: 0`），驅動算出的目標 dclk 是 0，`clk_set_rate(0)` 落到最低：
+`dclk_vop0 = 9281250 Hz`（clk_summary 實測，enable_count=1）= 1188 MHz ÷ 128，推測是 GPLL 經最大分頻。
+
+用時間驗證：
+
+| 模式 | 每格像素（htotal×vtotal） | commit 花費 | fence（2 格） | 一格實際 | 換算像素率 |
+|------|------------------------|------------|--------------|---------|-----------|
+| 1920×1080 | 2 208 900 | 59.9 ms | 119.3 ms | 59.66 ms | **37.0 Mpix/s** |
+| 960×540 | 552 225 | 14.6~15.8 ms | 29.3~30.6 ms | 14.8 ms | **37.3 Mpix/s** |
+
+兩種模式都是 ≈ **37.1 Mpix/s = 4 × 9.28 MHz** → VOP2 每個 dclk 處理 4 個像素，而 dclk 只有 9.28 MHz。
+- 模式說 67 Hz，實際只有 **16.8 Hz**（1080p）
+- debugfs `summary` 卻寫 `real_dclk[148500 kHz]`——那是要求值，不是真實值
+- `wbtest` 用模式算的「vsync period 7.44 ms」（960×540）也是錯的，實際 14.8 ms
+
+另外 960×540 那輪 dmesg 出現一串 `vop2_isr *ERROR* POST_BUF_EMPTY irq err at vp0`（1080p 沒有）。原因**待查**。
+
+### 7.6 發現 3：Writeback 的 BGR888 寫出來是 RGB888 的位元組順序
+
+DRM 定義（`drm_fourcc.h`）：`DRM_FORMAT_BGR888 = [23:0] B:G:R little endian` → 記憶體 byte0 = **R**、byte1 = G、byte2 = B。
+實測紅色色帶寫成 `00 00 ff`、藍色 `ff 00 00`：byte0 = B、byte2 = R，正好是 `DRM_FORMAT_RGB888` 的排列。
+驅動 `vop2_convert_wb_format()`：`DRM_FORMAT_BGR888 → VOP2_WB_BGR888`，硬體的「BGR888」和 DRM 的 BGR888 定義相反。
+→ 用 Writeback 抓 24-bit 畫面的程式，R 和 B 會對調。
+
+### 7.7 其他驗證
+
+- **圖層放大 ×2**（條紋 0/255）：驗算 4 個點
+  - 垂直：y=100~103 的來源位置 = y × 539/1079 = 49.95、50.45、50.95、51.45 → 線性內插 13、115、242、140；實測 **13、114、242、140** ✅ bilinear
+  - 水平：x=101、103 位置 50.47、51.47；bilinear 會是 120、135，Catmull-Rom 算出 **116、139**；實測 **115、139** ✅ bicubic
+- **Writeback 垂直 ÷2**：TRM §7.4.6.5「y 方向不縮放，超過兩倍用 wb_ythrow 丟行」；實測結果全是偶數行的值 ✅
+- **NV12**：用 R/G/B 三原色反推 Y = 0.2549 R + 0.5020 G + 0.0980 B + 16；BT.601 limited 是 0.2568/0.5041/0.0979/+16 ✅。
+  白 Y=235、黑 Y=16，紅 V=240、藍 U=240（limited range 上限）。debugfs 也寫 `color-encoding[BT.601] color-range[Limited]`
+- **fence 時間**：永遠是 2 個 vsync，對應驅動 `vop2_wb_handler()` 的 `fs_vsync_cnt == 2` 才 `drm_writeback_signal_completion()`

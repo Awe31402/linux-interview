@@ -21,6 +21,7 @@ P2 ch2 DMC、ch17/18 的體質分數另見 [`rock5b_explore/`](../rock5b_explore
 
 ## 最重要的發現
 
+- **VOP Writeback**（不接螢幕驗證 VOP）：Coverage 混色在單視窗 Cluster 圖層上被當成預乘；只有 Writeback 時像素時脈只有 9.28 MHz（1080p 實際 16.8 Hz）；Writeback 的 BGR888 位元組順序和 DRM 定義相反；圖層放大水平 bicubic、垂直 bilinear（H §7）
 - **PVTPLL**：TRM 漏列的 STATUS 暫存器找到了；量測窗剛好 1 µs 所以讀值 = MHz；頻率掃描量出晶片的電壓—頻率曲線（低頻縮短振盪環、高頻加電壓），並用它內插出開機體質分數，誤差 < 1%（H §5）
 - **VPU**：H.264 硬體和 H.265 一樣快（每幀 3.76 ms），GStreamer 外掛卻隨機卡住數秒；解碼是雙核輪流（G §1）
 
@@ -50,6 +51,7 @@ P2 ch2 DMC、ch17/18 的體質分數另見 [`rock5b_explore/`](../rock5b_explore
 | `wdt_probe.py` / `wdt_magic_test.sh` / `wdt_kernel_ping.sh` | 看門狗實驗（⚠ 會讓 WDT 保持啟動到下次重開機） |
 | `gpu_burn.py` | ctypes 呼叫 EGL/GLES 的 GPU 燒機 |
 | `tsadc_compare.py` | TSADC 原始碼 → TRM 表 vs 驅動表 |
+| `vop_wb/` | 不靠 libdrm 的 DRM Writeback 測試（合成、縮放、格式、時間），附分析與轉 PNG 腳本 |
 
 ## 資料（`data/`）
 
