@@ -8,10 +8,10 @@
 | 模組 | TRM 數量 | 啟用 | 接到哪 |
 |------|---------|------|-------|
 | PCIe | 3.0 x4、3.0 x2、3 × 2.0 x1 | 3.0 x4（`fe150000`）、2.0 x1 L0（`fe170000`）、2.0 x1 L2（`fe190000`） | NVMe、MT7921 Wi-Fi、RTL8125 2.5GbE |
-| Combo PIPE PHY | 3 | 3 | 給 PCIe 2.0 x1 用（也可切成 SATA/USB3） |
+| Combo PIPE PHY | 3 | 3 | PHY0 → PCIe 2.0 L2（2.5GbE）、PHY1 → PCIe 2.0 L0（Wi-Fi）、PHY2 → USB3_2（每顆可切成 PCIe/SATA/USB3） |
 | PCIe3 PHY | 1 | 1 | 給 PCIe 3.0 用 |
 | SATA | 3 | **0** | Combo PHY 被 PCIe 佔走 |
-| USB3（DWC3） | 3 | USB3_0（OTG，Type-C）、USB3_1（Host） | 兩個 5 Gbps root hub |
+| USB3（DWC3） | 3 | 3 個都綁了 dwc3 | USB3_0 `fc000000`：Type-C OTG，目前在 device（gadget）模式（`/sys/class/udc/fc000000.usb`）；USB3_1 `fc400000`：Host；USB3_2 `fcd00000`：Host（走 Combo PHY2） |
 | USB2 Host（EHCI/OHCI） | 2 | 2 | 板上 USB Hub → 藍牙 |
 | USBDP PHY | 2 | 2 | USB3 + DP 共用的 PHY |
 | SDMMC | 1 | 1 | microSD（**系統碟**） |
@@ -66,8 +66,8 @@ TRM 的 PCIe DBI 空間（`PCIe3_*_DBI f5000000~`）在 DT 沒有對應節點：
 
 ```
 $ lsusb -t
-Bus 05 / Bus 02: xhci-hcd  5000M   ← USB3_1 / USB3_0（SuperSpeed root hub）
-Bus 03 / Bus 01: xhci-hcd   480M   ← 同上的 USB2 部分
+Bus 05 / Bus 03: xhci-hcd  5000M / 480M   ← USB3_1（usbdrd3_1/fc400000）
+Bus 02 / Bus 01: xhci-hcd  5000M / 480M   ← USB3_2（usbhost3_0/fcd00000）
 Bus 07: ehci-platform 480M
     └─ Hub (4p) → Port 3: Class=Wireless（藍牙，IMC Networks 13d3:3583）
 Bus 04: ehci-platform 480M ；Bus 06/08: ohci-platform 12M
@@ -79,6 +79,8 @@ DWC3 身分暫存器（controller runtime active，`safe_mmio.py` 放行）：
 |--------|-----------|-------------------|-------------------|
 | `USB3OTG_GSNPSID` | `0x5533300A` | `5533300a` ✅ | `5533300a` ✅ |
 
+USB3_2（`fcd0c120`）同樣是 `5533300a` ✅。USB3_0 是 Type-C OTG，目前在 device 模式（有 `/sys/class/udc/fc000000.usb`），所以沒有 xHCI root hub。
+
 `0x5533` = ASCII "U3"，`300a` = DWC_usb3 **3.00a**。
 （為了讀到這兩個位址，把 `safe_mmio.py` 改成會往下找一層「位址直通」的父節點：USB 控制器掛在 `usbdrd3_0/`、`usbdrd3_1/` 底下。）
 
@@ -87,7 +89,8 @@ DWC3 身分暫存器（controller runtime active，`safe_mmio.py` 放行）：
 ## 5. SATA（Part2 ch15）與 Multi-Protocol PHY（ch16）
 
 三個 SATA 控制器都 disabled。TRM：Combo PIPE PHY 可以是 PCIe 2.0、SATA 或 USB3 三選一。
-ROCK 5B 把 PHY0 給 PCIe 2.0 x1 L2（2.5GbE）、PHY2 給 L0（Wi-Fi 的 M.2 E-key），所以沒有 SATA。
+ROCK 5B 的分配（DT `phys` 屬性，已查證）：PHY0 → PCIe 2.0 L2（2.5GbE）、PHY1 → PCIe 2.0 L0（M.2 E-key 的 Wi-Fi）、
+PHY2 → USB3_2（`&combphy2_psu` okay、`pcie2x1l1` disabled）。三顆都有人用，所以沒有 SATA。
 （M.2 E-key 理論上可以改成 SATA，需要換 DT overlay；沒做。）
 
 ## 6. GMAC（Part1 ch25）
