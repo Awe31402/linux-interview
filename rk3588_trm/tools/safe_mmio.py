@@ -14,14 +14,20 @@ BASE = '/sys/firmware/devicetree/base'
 def rd(p):
     try: return open(p, 'rb').read()
     except OSError: return None
-def find_node(pa):
-    for n in os.listdir(BASE):
-        reg = rd(os.path.join(BASE, n, 'reg'))
-        if not reg or len(reg) < 16: continue
-        v = struct.unpack('>%dI' % (len(reg) // 4), reg)
-        for i in range(0, len(v) - 3, 4):
-            a, s = (v[i] << 32) | v[i + 1], (v[i + 2] << 32) | v[i + 3]
-            if a <= pa < a + s: return n, a
+def find_node(pa, base=BASE, depth=0):
+    """找涵蓋 pa 的節點；會往下走一層「ranges 為空（位址直通）」的父節點，例如 usbdrd3_0/usb@fc000000。"""
+    for n in os.listdir(base):
+        p = os.path.join(base, n)
+        if not os.path.isdir(p): continue
+        reg = rd(os.path.join(p, 'reg'))
+        if reg and len(reg) >= 16:
+            v = struct.unpack('>%dI' % (len(reg) // 4), reg)
+            for i in range(0, len(v) - 3, 4):
+                a, s = (v[i] << 32) | v[i + 1], (v[i + 2] << 32) | v[i + 3]
+                if a <= pa < a + s: return n, a
+        if depth == 0 and rd(os.path.join(p, 'ranges')) == b'':
+            r = find_node(pa, p, 1)
+            if r[0]: return r
     return None, None
 def check(pa):
     n, a = find_node(pa)

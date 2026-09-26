@@ -12,7 +12,7 @@
 | C 低速周邊 | [C_lowspeed_io.md](./C_lowspeed_io.md) | P1 ch12/13/14/18/19/20/21/26/29/30/31 | ✅ |
 | D 音訊 | [D_audio.md](./D_audio.md) | P1 ch22/23/24/27/28/39 | ✅ |
 | E 安全 | [E_security.md](./E_security.md) | P1 ch33、P2 ch10 | ✅ |
-| F 儲存與高速介面 | — | P2 ch2/3/4/11/12/13/14/15/16、P1 ch25 | ⏳ |
+| F 儲存與高速介面 | [F_storage_highspeed.md](./F_storage_highspeed.md) | P2 ch2/3/4/11/12/13/14/15/16、P1 ch25 | ✅ |
 | G 多媒體 | — | P1 ch5/37/38、P2 ch5/6/7/8 | ⏳ |
 | H 顯示與相機介面 | — | P2 ch9/17/18/19/20/21/22/23/24/25/26/27/28 | ⏳ |
 
