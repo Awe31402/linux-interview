@@ -206,6 +206,9 @@ $ sudo python3 peek.py 0xfd590000:0x14:2
 從 1008 MHz 起，讀值 ≈ 目前頻率（MHz）。408 MHz 時對不上，
 推測是低頻時 CPU 不用 PVTPLL，改用一般 PLL，暫存器留著舊值（**推測**）。
 
+> **已解答（2026-09-26）**：見 [`rk3588_trm/H §5`](../rk3588_trm/H_display_camera_pvt.md)。+0x14/+0x18 是 TRM Part2 ch18 的 `PVTPLL_STATUS0/1`（osc_cnt / osc_cnt_avg），
+> 量測窗 `cal_cnt = 24` 個 24 MHz 週期 = 1 µs，所以讀值就是 MHz。408/600 MHz 時環長停在 11、osc ≈ 1450 是空轉值，推測正確。
+
 ### 想驗證溫度補償係數 0.27/°C → 失敗，但學到東西
 
 實驗（`tools/pvtm_temp.sh`）：大核叢集 1 固定 1608 MHz／725 mV，關風扇，
