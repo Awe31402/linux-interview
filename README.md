@@ -43,6 +43,18 @@
 
 ---
 
+## 🔭 自由探索
+
+* 🧪 [ROCK 5B 自由探索（2026-09-26）](./rock5b_explore/README.md) — 不照書本題目，直接看板子怎麼運作再對原始碼：
+  **晶片體質**（OTP 漏電 + 開機現場量的 PVTM 分數 1676 **剛好卡在分級邊界**，所以大核最高 2256 而不是 2400 MHz；電壓表逐點對帳全中）、
+  **散熱**（風扇開機起卡 100%，因為 power_allocator 不管風扇；關風扇 85°C 時降頻的是 Rockchip system_monitor；step_wise 換過去就換不回來）、
+  **調頻延遲**（一次 7.5 ms，14 筆 I2C 只有 1 筆有用）、**DDR devfreq**（指標追逐延遲慢 1.9 倍），
+  以及序列埠登入失敗迴圈、板上 build tree 被切到 6.12 等現況問題。
+* 📐 [RK3588 TRM 逐模組筆記與實機驗證](./rk3588_trm/README.md) — 照 TRM 67 章分 8 組逐一對照板子：
+  TRM 位址表 × DT 全面對帳、PLL 公式驗算、GIC600 設定、看門狗行為、TSADC 對照表落差、GPU 算力與 Forward Pixel Kill…（進行中）
+
+---
+
 ## ✅ 解答（含 RK3588 實機實驗）
 
 以下解答皆在 **Radxa ROCK 5B（RK3588, Linux 6.1.115+ aarch64, 8GB）** 上實測，

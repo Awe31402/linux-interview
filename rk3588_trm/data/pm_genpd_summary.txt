@@ -1,0 +1,94 @@
+domain                          status          children                           performance
+    /device                                             runtime status
+----------------------------------------------------------------------------------------------
+sdmmc                           on                                                 0
+    /devices/platform/fe2c0000.mmc                      unsupported                0
+audio                           on                                                 0
+    /devices/platform/clocks/fd58c318.mclkout-i2s0      active                     0
+    /devices/platform/clocks/fd58c318.mclkout-i2s2      suspended                  0
+    /devices/platform/clocks/fd58c318.mclkout-i2s3      suspended                  0
+    /devices/platform/fe470000.i2s                      suspended                  0
+sdio                            off-0                                              0
+    /devices/platform/fe2d0000.mmc                      suspended                  0
+pcie                            on                                                 0
+    /devices/platform/fe150000.pcie                     active                     0
+gmac                            off-0                                              0
+usb                             on                                                 0
+    /devices/platform/usbdrd3_0/fc000000.usb            active                     0
+    /devices/platform/usbdrd3_1/fc400000.usb            active                     0
+    /devices/platform/fc800000.usb                      active                     0
+    /devices/platform/fc880000.usb                      active                     0
+    /devices/platform/fc840000.usb                      suspended                  0
+    /devices/platform/fc8c0000.usb                      suspended                  0
+    /devices/platform/rockchip-suspend                  suspended                  0
+rga31                           off-0                                              0
+    /devices/platform/fdb70f00.iommu                    suspended                  0
+    /devices/platform/fdb70000.rga                      suspended                  0
+fec                             off-0                                              0
+isp1                            off-0                                              0
+vi                              off-0                                              0
+                                                isp1, fec
+vo1                             on                                                 0
+    /devices/platform/fde80000.hdmi                     active                     0
+    /devices/platform/fdea0000.hdmi                     active                     0
+    /devices/platform/fdee0000.hdmirx-controller        active                     0
+    /devices/platform/fddf0000.i2s                      active                     0
+    /devices/platform/fddf4000.i2s                      active                     0
+    /devices/platform/fddf8000.i2s                      suspended                  0
+vo0                             on                                                 0
+    /devices/platform/fde50000.dp                       active                     0
+    /devices/platform/fddb0000.spdif-tx                 suspended                  0
+vop                             on                                                 0
+                                                vo0
+    /devices/platform/fdd90000.vop                      suspended                  0
+rga30                           off-0                                              0
+    /devices/platform/fdb60f00.iommu                    suspended                  0
+    /devices/platform/fdb60000.rga                      suspended                  0
+av1                             off-0                                              0
+    /devices/platform/fdca0000.iommu                    suspended                  0
+    /devices/platform/fdc70000.av1d                     suspended                  0
+vdpu                            off-0                                              0
+                                                av1, rkvdec0, rkvdec1, rga30
+    /devices/platform/fdb50800.iommu                    suspended                  0
+    /devices/platform/fdb90480.iommu                    suspended                  0
+    /devices/platform/fdba0800.iommu                    suspended                  0
+    /devices/platform/fdba4800.iommu                    suspended                  0
+    /devices/platform/fdba8800.iommu                    suspended                  0
+    /devices/platform/fdbac800.iommu                    suspended                  0
+    /devices/platform/fdbb0800.iommu                    suspended                  0
+    /devices/platform/fdb80000.rga                      suspended                  0
+    /devices/platform/fdb50400.vdpu                     suspended                  0
+    /devices/platform/fdb50000.vepu                     suspended                  0
+    /devices/platform/fdba0000.jpege-core               suspended                  0
+    /devices/platform/fdba4000.jpege-core               suspended                  0
+    /devices/platform/fdba8000.jpege-core               suspended                  0
+    /devices/platform/fdbac000.jpege-core               suspended                  0
+    /devices/platform/fdbb0000.iep                      suspended                  0
+    /devices/platform/fdb90000.jpegd                    suspended                  0
+venc1                           off-0                                              0
+    /devices/platform/fdbef000.iommu                    suspended                  0
+    /devices/platform/fdbe0000.rkvenc-core              suspended                  0
+venc0                           off-0                                              0
+                                                venc1
+    /devices/platform/fdbdf000.iommu                    suspended                  0
+    /devices/platform/fdbd0000.rkvenc-core              suspended                  0
+rkvdec1                         off-0                                              0
+    /devices/platform/fdc48700.iommu                    suspended                  0
+    /devices/platform/fdc48100.rkvdec-core              suspended                  0
+rkvdec0                         off-0                                              0
+    /devices/platform/fdc30000.rkvdec-ccu               suspended                  0
+    /devices/platform/fdc38700.iommu                    suspended                  0
+    /devices/platform/fdc38100.rkvdec-core              suspended                  0
+vcodec                          off-0                                              0
+                                                rkvdec0, rkvdec1, venc0
+gpu                             off-0                                              0
+    /devices/platform/fb000000.gpu                      suspended                  0
+npu2                            off-0                                              0
+    /devices/genpd:2:fdab0000.npu                       suspended                  0
+npu1                            off-0                                              0
+    /devices/genpd:1:fdab0000.npu                       suspended                  0
+nputop                          off-0                                              0
+                                                npu1, npu2
+    /devices/genpd:0:fdab0000.npu                       suspended                  0
+npu                             off-0                                              0
+                                                nputop

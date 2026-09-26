@@ -1,0 +1,1102 @@
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+ 4)               |  regulator_set_voltage() {
+ 4)               |    regulator_lock_dependent() {
+ 4)               |      mutex_lock() {
+ 4)               |        __cond_resched() {
+ 4)   1.750 us    |          rcu_all_qs();
+ 4)   5.542 us    |        }
+ 4)   8.458 us    |      }
+ 4)               |      regulator_lock_recursive() {
+ 4)               |        mutex_lock() {
+ 4)               |          __cond_resched() {
+ 4)   1.166 us    |            rcu_all_qs();
+ 4)   3.792 us    |          }
+ 4)   6.125 us    |        }
+ 4)   1.750 us    |        ww_mutex_trylock();
+ 4)   1.458 us    |        mutex_unlock();
+ 4)   1.166 us    |        regulator_supply_is_couple();
+ 4)               |        regulator_lock_recursive() {
+ 4)               |          mutex_lock() {
+ 4)               |            __cond_resched() {
+ 4)   1.167 us    |              rcu_all_qs();
+ 4)   3.791 us    |            }
+ 4)   6.125 us    |          }
+ 4)   1.458 us    |          ww_mutex_trylock();
+ 4)   1.166 us    |          mutex_unlock();
+ 4)   1.459 us    |          regulator_supply_is_couple();
+ 4)               |          regulator_lock_recursive() {
+ 4)               |            mutex_lock() {
+ 4)               |              __cond_resched() {
+ 4)   1.167 us    |                rcu_all_qs();
+ 4)   3.500 us    |              }
+ 4)   5.833 us    |            }
+ 4)   1.458 us    |            ww_mutex_trylock();
+ 4)   1.166 us    |            mutex_unlock();
+ 4) + 13.709 us   |          }
+ 4) + 32.375 us   |        }
+ 4) + 53.375 us   |      }
+ 4)   1.459 us    |      mutex_unlock();
+ 4) + 68.541 us   |    }
+ 4)               |    regulator_set_voltage_unlocked() {
+ 4)   1.458 us    |      regulator_ops_is_valid();
+ 4)               |      regulator_check_voltage() {
+ 4)   1.458 us    |        regulator_ops_is_valid();
+ 4)   4.083 us    |      }
+ 4)               |      regulator_balance_voltage() {
+ 4)               |        regulator_do_balance_voltage() {
+ 4)   2.333 us    |          regulator_check_consumers();
+ 4)               |          regulator_set_voltage_rdev() {
+ 4)   1.750 us    |            regulator_ops_is_valid();
+ 4)               |            _regulator_do_set_voltage() {
+ 4)               |              regulator_get_voltage_rdev() {
+ 4)               |                rk860x_get_voltage() {
+ 4)   1.459 us    |                  rdev_get_drvdata();
+ 4)               |                  regmap_read() {
+ 4)               |                    regmap_lock_mutex() {
+ 4)               |                      mutex_lock() {
+ 4)   1.750 us    |                        __cond_resched();
+ 4)   4.083 us    |                      }
+ 4)   6.709 us    |                    }
+ 4)               |                    _regmap_read() {
+ 4)   2.041 us    |                      regmap_readable();
+ 4)               |                      _regmap_bus_read() {
+ 4)               |                        _regmap_raw_read() {
+ 5) ! 723.042 us  |                        } /* _regmap_raw_read */
+ 5)   1.750 us    |                        regmap_parse_8();
+ 5) ! 734.708 us  |                      } /* _regmap_bus_read */
+ 5) ! 741.709 us  |                    } /* _regmap_read */
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.750 us    |                      mutex_unlock();
+ 5)   4.083 us    |                    }
+ 5) ! 758.042 us  |                  } /* regmap_read */
+ 5)               |                  regulator_get_voltage_sel_regmap() {
+ 5)               |                    regmap_read() {
+ 5)               |                      regmap_lock_mutex() {
+ 5)   2.625 us    |                        mutex_lock();
+ 5)   4.958 us    |                      }
+ 5)               |                      _regmap_read() {
+ 5)   1.750 us    |                        regmap_readable();
+ 5) ! 623.291 us  |                        _regmap_bus_read();
+ 5) ! 629.708 us  |                      }
+ 5)               |                      regmap_unlock_mutex() {
+ 5)   1.458 us    |                        mutex_unlock();
+ 5)   4.084 us    |                      }
+ 5) ! 643.417 us  |                    }
+ 5) ! 646.333 us  |                  }
+ 5) # 1411.958 us |                } /* rk860x_get_voltage */
+ 5)               |                regulator_list_voltage_linear() {
+ 5)   1.458 us    |                  regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |                }
+ 5) # 1420.709 us |              } /* regulator_get_voltage_rdev */
+ 5)   1.458 us    |              rdev_get_name();
+ 5)               |              _regulator_is_enabled() {
+ 5)               |                rk860x_is_enabled() {
+ 5)   1.459 us    |                  rdev_get_drvdata();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   1.750 us    |                        __cond_resched();
+ 5)   4.958 us    |                      }
+ 5)   7.292 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)   1.166 us    |                      regmap_readable();
+ 5)               |                      _regmap_bus_read() {
+ 5) ! 597.333 us  |                        _regmap_raw_read();
+ 5)   1.458 us    |                        regmap_parse_8();
+ 5) ! 602.875 us  |                      }
+ 5) ! 607.834 us  |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.458 us    |                      mutex_unlock();
+ 5)   4.084 us    |                    }
+ 5) ! 623.584 us  |                  }
+ 5) ! 629.708 us  |                }
+ 5) ! 632.917 us  |              }
+ 5)               |              rk860x_get_voltage() {
+ 5)   1.167 us    |                rdev_get_drvdata();
+ 5)               |                regmap_read() {
+ 5)               |                  regmap_lock_mutex() {
+ 5)               |                    mutex_lock() {
+ 5)               |                      __cond_resched() {
+ 5)   1.167 us    |                        rcu_all_qs();
+ 5)   3.792 us    |                      }
+ 5)   6.125 us    |                    }
+ 5)   9.333 us    |                  }
+ 5)               |                  _regmap_read() {
+ 5)   1.458 us    |                    regmap_readable();
+ 5)               |                    _regmap_bus_read() {
+ 5)               |                      _regmap_raw_read() {
+ 5)   1.167 us    |                        _regmap_range_lookup.isra.0();
+ 5)   1.167 us    |                        regmap_format_8();
+ 5)   1.166 us    |                        regmap_set_work_buf_flag_mask();
+ 5) ! 608.125 us  |                        regmap_i2c_read();
+ 5) ! 618.917 us  |                      }
+ 5)   1.458 us    |                      regmap_parse_8();
+ 5) ! 623.875 us  |                    }
+ 5) ! 628.834 us  |                  }
+ 5)               |                  regmap_unlock_mutex() {
+ 5)   1.458 us    |                    mutex_unlock();
+ 5)   3.500 us    |                  }
+ 5) ! 646.042 us  |                }
+ 5)               |                regulator_get_voltage_sel_regmap() {
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   1.750 us    |                        __cond_resched();
+ 5)   3.792 us    |                      }
+ 5)   6.416 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)   1.166 us    |                      regmap_readable();
+ 5)               |                      _regmap_bus_read() {
+ 5) ! 606.084 us  |                        _regmap_raw_read();
+ 5)   1.459 us    |                        regmap_parse_8();
+ 5) ! 611.917 us  |                      }
+ 5) ! 616.583 us  |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.458 us    |                      mutex_unlock();
+ 5)   6.708 us    |                    }
+ 5) ! 634.959 us  |                  }
+ 5) ! 637.291 us  |                }
+ 5) # 1289.458 us |              }
+ 5)               |              regulator_map_voltage() {
+ 5)               |                regulator_map_voltage_linear() {
+ 5)               |                  regulator_list_voltage_linear() {
+ 5)   1.167 us    |                    regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |                  }
+ 5)   6.709 us    |                }
+ 5) + 10.208 us   |              }
+ 5)               |              regulator_list_voltage_linear() {
+ 5)   1.166 us    |                regulator_desc_list_voltage_linear();
+ 5)   4.375 us    |              }
+ 5)               |              _regulator_call_set_voltage_sel() {
+ 5)               |                regulator_get_voltage_rdev() {
+ 5)               |                  rk860x_get_voltage() {
+ 5)   1.167 us    |                    rdev_get_drvdata();
+ 5)               |                    regmap_read() {
+ 5)               |                      regmap_lock_mutex() {
+ 5)   2.333 us    |                        mutex_lock();
+ 5)   4.667 us    |                      }
+ 5)               |                      _regmap_read() {
+ 5)   1.459 us    |                        regmap_readable();
+ 5) ! 597.625 us  |                        _regmap_bus_read();
+ 5) ! 604.333 us  |                      }
+ 5)               |                      regmap_unlock_mutex() {
+ 5)   1.167 us    |                        mutex_unlock();
+ 5)   3.792 us    |                      }
+ 5) ! 617.166 us  |                    }
+ 5)               |                    regulator_get_voltage_sel_regmap() {
+ 5)               |                      regmap_read() {
+ 5)   2.625 us    |                        regmap_lock_mutex();
+ 5) ! 606.375 us  |                        _regmap_read();
+ 5)   1.750 us    |                        regmap_unlock_mutex();
+ 5) ! 617.166 us  |                      }
+ 5) ! 619.500 us  |                    }
+ 5) # 1242.792 us |                  }
+ 5)               |                  regulator_list_voltage_linear() {
+ 5)   1.167 us    |                    regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |                  }
+ 5) # 1250.083 us |                }
+ 5)   1.459 us    |                blocking_notifier_call_chain();
+ 5)               |                regulator_set_voltage_sel_regmap() {
+ 5)               |                  regmap_update_bits_base() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   1.750 us    |                        __cond_resched();
+ 5)   4.083 us    |                      }
+ 5)   6.417 us    |                    }
+ 5)               |                    _regmap_update_bits() {
+ 5)               |                      regmap_volatile() {
+ 5)   1.167 us    |                        regmap_readable();
+ 5)   3.792 us    |                      }
+ 5)               |                      _regmap_read() {
+ 5)   1.167 us    |                        regmap_readable();
+ 5) ! 596.166 us  |                        _regmap_bus_read();
+ 5) ! 602.584 us  |                      }
+ 5)               |                      _regmap_write() {
+ 5)   1.459 us    |                        regmap_writeable();
+ 5) ! 485.916 us  |                        _regmap_bus_raw_write();
+ 5) ! 491.750 us  |                      }
+ 5) # 1103.959 us |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.166 us    |                      mutex_unlock();
+ 5)   3.792 us    |                    }
+ 5) # 1118.834 us |                  }
+ 5) # 1122.917 us |                }
+ 5) # 2379.417 us |              }
+ 5)               |              regulator_set_voltage_time_sel() {
+ 5)               |                regulator_list_voltage_linear() {
+ 5)   1.167 us    |                  regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |                }
+ 5)               |                regulator_list_voltage_linear() {
+ 5)   1.166 us    |                  regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |                }
+ 5)   2.333 us    |                _regulator_set_voltage_time();
+ 5) + 14.292 us   |              }
+ 5)               |              _regulator_delay_helper() {
+ 5)               |                usleep_range_state() {
+ 5)               |                  ktime_get() {
+ 5)   1.459 us    |                    arch_counter_read();
+ 5)   3.791 us    |                  }
+ 5)               |                  schedule_hrtimeout_range() {
+ 5)               |                    schedule_hrtimeout_range_clock() {
+ 5)               |                      hrtimer_init_sleeper() {
+ 5)   1.750 us    |                        __hrtimer_init();
+ 5)   4.375 us    |                      }
+ 5)   1.167 us    |                      ktime_add_safe();
+ 5)               |                      hrtimer_start_range_ns() {
+ 5)   2.042 us    |                        lock_hrtimer_base();
+ 5)   1.750 us    |                        ktime_add_safe();
+ 5)   5.250 us    |                        get_nohz_timer_target();
+ 5)   3.209 us    |                        enqueue_hrtimer();
+ 5) + 64.750 us   |                        _raw_spin_unlock_irqrestore();
+ 5) + 84.292 us   |                      }
+ 5)               |                      schedule() {
+ 5)   1.750 us    |                        rcu_note_context_switch();
+ 5)   2.041 us    |                        raw_spin_rq_lock_nested();
+ 5)   1.458 us    |                        update_rq_clock();
+ 5) + 21.875 us   |                        deactivate_task();
+ 5)   3.208 us    |                        pick_next_task_fair();
+ 5)   5.833 us    |                        put_prev_task_fair();
+ 5)   1.750 us    |                        pick_next_task_idle();
+ 5)   1.750 us    |                        __traceiter_sched_switch();
+ 5)   2.917 us    |                        fpsimd_thread_switch();
+ 5)   1.458 us    |                        tls_preserve_current_state();
+ 5)   1.458 us    |                        hw_breakpoint_thread_switch();
+ 5)   1.458 us    |                        mte_thread_switch();
+ 5)   2.917 us    |                        finish_task_switch.isra.0();
+ 5) ! 244.709 us  |                      }
+ 5)               |                      hrtimer_cancel() {
+ 5)   2.041 us    |                        hrtimer_try_to_cancel();
+ 5)   4.667 us    |                      }
+ 5) ! 346.500 us  |                    }
+ 5) ! 348.833 us  |                  }
+ 5) ! 356.125 us  |                }
+ 5) ! 358.459 us  |              }
+ 5)               |              _notifier_call_chain.isra.0() {
+ 5)   1.458 us    |                blocking_notifier_call_chain();
+ 5)   4.667 us    |              }
+ 5) # 6129.667 us |            } /* _regulator_do_set_voltage */
+ 5) # 6135.791 us |          } /* regulator_set_voltage_rdev */
+ 5) # 6141.917 us |        } /* regulator_do_balance_voltage */
+ 5) # 6144.541 us |      } /* regulator_balance_voltage */
+ 5) # 6157.083 us |    } /* regulator_set_voltage_unlocked */
+ 5)               |    regulator_unlock_recursive() {
+ 5)   1.167 us    |      regulator_supply_is_couple();
+ 5)               |      regulator_unlock_recursive() {
+ 5)   1.458 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_unlock_recursive() {
+ 5)               |          regulator_unlock() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   1.167 us    |                rcu_all_qs();
+ 5)   3.792 us    |              }
+ 5)   6.417 us    |            }
+ 5)               |            ww_mutex_unlock() {
+ 5)   1.459 us    |              mutex_unlock();
+ 5)   4.083 us    |            }
+ 5)   1.458 us    |            mutex_unlock();
+ 5) + 16.625 us   |          }
+ 5) + 20.125 us   |        }
+ 5)               |        regulator_unlock() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   1.167 us    |              rcu_all_qs();
+ 5)   3.792 us    |            }
+ 5)   6.125 us    |          }
+ 5)               |          ww_mutex_unlock() {
+ 5)   1.750 us    |            mutex_unlock();
+ 5)   3.791 us    |          }
+ 5)   1.458 us    |          mutex_unlock();
+ 5) + 16.916 us   |        }
+ 5) + 43.458 us   |      }
+ 5)               |      regulator_unlock() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.167 us    |            rcu_all_qs();
+ 5)   3.500 us    |          }
+ 5)   5.833 us    |        }
+ 5)               |        ww_mutex_unlock() {
+ 5)   1.458 us    |          mutex_unlock();
+ 5)   3.792 us    |        }
+ 5)   1.459 us    |        mutex_unlock();
+ 5) + 16.625 us   |      }
+ 5) + 66.208 us   |    }
+ 5) # 6303.500 us |  } /* regulator_set_voltage */
+ 5)               |  regulator_set_voltage() {
+ 5)               |    regulator_lock_dependent() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   1.167 us    |          rcu_all_qs();
+ 5)   3.500 us    |        }
+ 5)   6.125 us    |      }
+ 5)               |      regulator_lock_recursive() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.166 us    |            rcu_all_qs();
+ 5)   3.500 us    |          }
+ 5)   8.459 us    |        }
+ 5)   1.750 us    |        ww_mutex_trylock();
+ 5)   1.458 us    |        mutex_unlock();
+ 5)   1.167 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_lock_recursive() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   1.458 us    |              rcu_all_qs();
+ 5)   3.500 us    |            }
+ 5)   5.833 us    |          }
+ 5)   1.458 us    |          ww_mutex_trylock();
+ 5)   1.458 us    |          mutex_unlock();
+ 5)   1.167 us    |          regulator_supply_is_couple();
+ 5)               |          regulator_lock_recursive() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   1.167 us    |                rcu_all_qs();
+ 5)   3.500 us    |              }
+ 5)   5.833 us    |            }
+ 5)   1.459 us    |            ww_mutex_trylock();
+ 5)   1.167 us    |            mutex_unlock();
+ 5) + 13.125 us   |          }
+ 5) + 29.750 us   |        }
+ 5) + 49.875 us   |      }
+ 5)   1.458 us    |      mutex_unlock();
+ 5) + 62.417 us   |    }
+ 5)               |    regulator_set_voltage_unlocked() {
+ 5)   1.166 us    |      regulator_ops_is_valid();
+ 5)               |      regulator_check_voltage() {
+ 5)   1.167 us    |        regulator_ops_is_valid();
+ 5)   3.791 us    |      }
+ 5)               |      regulator_balance_voltage() {
+ 5)               |        regulator_do_balance_voltage() {
+ 5)   1.750 us    |          regulator_check_consumers();
+ 5)               |          regulator_set_voltage_rdev() {
+ 5)   1.459 us    |            regulator_ops_is_valid();
+ 5)               |            _regulator_do_set_voltage() {
+ 5)               |              regulator_get_voltage_rdev() {
+ 5)               |                rk860x_get_voltage() {
+ 5)   1.167 us    |                  rdev_get_drvdata();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   1.750 us    |                        __cond_resched();
+ 5)   4.666 us    |                      }
+ 5)   7.000 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)   1.167 us    |                      regmap_readable();
+ 5)               |                      _regmap_bus_read() {
+ 5) ! 609.000 us  |                        _regmap_raw_read();
+ 5)   1.167 us    |                        regmap_parse_8();
+ 5) ! 614.833 us  |                      }
+ 5) ! 619.500 us  |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.167 us    |                      mutex_unlock();
+ 5)   4.375 us    |                    }
+ 5) ! 635.250 us  |                  }
+ 5)               |                  regulator_get_voltage_sel_regmap() {
+ 5)               |                    regmap_read() {
+ 5)               |                      regmap_lock_mutex() {
+ 5)   2.333 us    |                        mutex_lock();
+ 5)   4.667 us    |                      }
+ 5)               |                      _regmap_read() {
+ 5)   1.459 us    |                        regmap_readable();
+ 5) ! 607.250 us  |                        _regmap_bus_read();
+ 5) ! 612.791 us  |                      }
+ 5)               |                      regmap_unlock_mutex() {
+ 5)   1.166 us    |                        mutex_unlock();
+ 5)   3.500 us    |                      }
+ 5) ! 625.625 us  |                    }
+ 5) ! 627.958 us  |                  }
+ 5) # 1269.042 us |                }
+ 5)               |                regulator_list_voltage_linear() {
+ 5)   1.167 us    |                  regulator_desc_list_voltage_linear();
+ 5)   3.208 us    |                }
+ 5) # 1276.042 us |              }
+ 5)   1.459 us    |              rdev_get_name();
+ 5)               |              _regulator_is_enabled() {
+ 5)               |                rk860x_is_enabled() {
+ 5)   1.166 us    |                  rdev_get_drvdata();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   1.750 us    |                        __cond_resched();
+ 5)   4.084 us    |                      }
+ 5)   6.416 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)   1.166 us    |                      regmap_readable();
+ 5)               |                      _regmap_bus_read() {
+ 5) ! 595.291 us  |                        _regmap_raw_read();
+ 5)   1.459 us    |                        regmap_parse_8();
+ 5) ! 602.875 us  |                      }
+ 5) ! 608.708 us  |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.459 us    |                      mutex_unlock();
+ 5)   3.791 us    |                    }
+ 5) ! 623.583 us  |                  }
+ 5) ! 628.250 us  |                }
+ 5) ! 630.874 us  |              }
+ 5)               |              rk860x_get_voltage() {
+ 5)   1.166 us    |                rdev_get_drvdata();
+ 5)               |                regmap_read() {
+ 5)               |                  regmap_lock_mutex() {
+ 5)               |                    mutex_lock() {
+ 5)               |                      __cond_resched() {
+ 5)   1.166 us    |                        rcu_all_qs();
+ 5)   3.500 us    |                      }
+ 5)   5.834 us    |                    }
+ 5)   8.166 us    |                  }
+ 5)               |                  _regmap_read() {
+ 5)   1.166 us    |                    regmap_readable();
+ 5)               |                    _regmap_bus_read() {
+ 5)               |                      _regmap_raw_read() {
+ 5)   1.750 us    |                        _regmap_range_lookup.isra.0();
+ 5)   1.459 us    |                        regmap_format_8();
+ 5)   1.458 us    |                        regmap_set_work_buf_flag_mask();
+ 5) ! 602.583 us  |                        regmap_i2c_read();
+ 5) ! 613.083 us  |                      }
+ 5)   1.458 us    |                      regmap_parse_8();
+ 5) ! 617.750 us  |                    }
+ 5) ! 623.292 us  |                  }
+ 5)               |                  regmap_unlock_mutex() {
+ 5)   1.459 us    |                    mutex_unlock();
+ 5)   3.791 us    |                  }
+ 5) ! 639.625 us  |                }
+ 5)               |                regulator_get_voltage_sel_regmap() {
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   1.750 us    |                        __cond_resched();
+ 5)   4.083 us    |                      }
+ 5)   6.417 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)   1.459 us    |                      regmap_readable();
+ 5)               |                      _regmap_bus_read() {
+ 5) ! 605.792 us  |                        _regmap_raw_read();
+ 5)   1.459 us    |                        regmap_parse_8();
+ 5) ! 611.625 us  |                      }
+ 5) ! 616.583 us  |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   1.459 us    |                      mutex_unlock();
+ 5)   3.500 us    |                    }
+ 5) ! 630.875 us  |                  }
+ 5) ! 633.792 us  |                }
+ 5) # 1278.667 us |              }
+ 5)               |              regulator_map_voltage() {
+ 5)               |                regulator_map_voltage_linear() {
+ 5)               |                  regulator_list_voltage_linear() {
+ 5)   1.166 us    |                    regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |                  }
+ 5)   6.125 us    |                }
+ 5)   8.458 us    |              }
+ 5)               |              regulator_list_voltage_linear() {
+ 5)   1.167 us    |                regulator_desc_list_voltage_linear();
+ 5)   3.500 us    |              }
+ 5)               |              _regulator_delay_helper() {
+ 5)               |                __udelay() {
+ 5)               |                  __delay() {
+ 5)   1.458 us    |                    arch_timer_evtstrm_available();
+ 5)   4.083 us    |                  }
+ 5)   7.583 us    |                }
+ 5) + 10.209 us   |              }
+ 5)               |              _notifier_call_chain.isra.0() {
+ 5)   1.167 us    |                blocking_notifier_call_chain();
+ 5)   3.500 us    |              }
+ 5) # 3223.500 us |            }
+ 5) # 3228.458 us |          }
+ 5) # 3233.999 us |        }
+ 5) # 3236.333 us |      }
+ 5) # 3246.542 us |    }
+ 5)               |    regulator_unlock_recursive() {
+ 5)   2.042 us    |      regulator_supply_is_couple();
+ 5)               |      regulator_unlock_recursive() {
+ 5)   1.166 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_unlock_recursive() {
+ 5)               |          regulator_unlock() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   1.458 us    |                rcu_all_qs();
+ 5)   3.792 us    |              }
+ 5)   6.125 us    |            }
+ 5)               |            ww_mutex_unlock() {
+ 5)   1.458 us    |              mutex_unlock();
+ 5)   3.792 us    |            }
+ 5)   1.458 us    |            mutex_unlock();
+ 5) + 17.500 us   |          }
+ 5) + 19.833 us   |        }
+ 5)               |        regulator_unlock() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   1.458 us    |              rcu_all_qs();
+ 5)   3.792 us    |            }
+ 5)   6.125 us    |          }
+ 5)               |          ww_mutex_unlock() {
+ 5)   1.459 us    |            mutex_unlock();
+ 5)   4.375 us    |          }
+ 5)   1.459 us    |          mutex_unlock();
+ 5) + 16.333 us   |        }
+ 5) + 41.708 us   |      }
+ 5)               |      regulator_unlock() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.166 us    |            rcu_all_qs();
+ 5)   4.084 us    |          }
+ 5)   6.416 us    |        }
+ 5)               |        ww_mutex_unlock() {
+ 5)   1.166 us    |          mutex_unlock();
+ 5)   4.083 us    |        }
+ 5)   1.166 us    |        mutex_unlock();
+ 5) + 16.625 us   |      }
+ 5) + 65.334 us   |    }
+ 5) # 3380.124 us |  }
+ ------------------------------------------
+ 5)    sh-58427    => kworker-45220 
+ ------------------------------------------
+
+ 5)               |  regulator_set_voltage() {
+ 5)               |    regulator_lock_dependent() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.875 us    |          rcu_all_qs();
+ 5)   1.458 us    |        }
+ 5)   1.750 us    |      }
+ 5)               |      regulator_lock_recursive() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.459 us    |        }
+ 5)   0.584 us    |        ww_mutex_trylock();
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   0.583 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_lock_recursive() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   0.292 us    |              rcu_all_qs();
+ 5)   1.458 us    |            }
+ 5)   2.042 us    |          }
+ 5)   0.291 us    |          ww_mutex_trylock();
+ 5)   0.000 us    |          mutex_unlock();
+ 5)   0.292 us    |          regulator_supply_is_couple();
+ 5)               |          regulator_lock_recursive() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   0.584 us    |                rcu_all_qs();
+ 5)   0.875 us    |              }
+ 5)   2.333 us    |            }
+ 5)   0.000 us    |            ww_mutex_trylock();
+ 5)   0.291 us    |            mutex_unlock();
+ 5)   4.667 us    |          }
+ 5)   9.916 us    |        }
+ 5) + 14.583 us   |      }
+ 5)   0.291 us    |      mutex_unlock();
+ 5) + 18.667 us   |    }
+ 5)               |    regulator_set_voltage_unlocked() {
+ 5)   0.292 us    |      regulator_ops_is_valid();
+ 5)               |      regulator_check_voltage() {
+ 5)   0.292 us    |        regulator_ops_is_valid();
+ 5)   0.875 us    |      }
+ 5)               |      regulator_balance_voltage() {
+ 5)               |        regulator_do_balance_voltage() {
+ 5)   0.583 us    |          regulator_check_consumers();
+ 5)               |          regulator_set_voltage_rdev() {
+ 5)   0.291 us    |            regulator_ops_is_valid();
+ 5)               |            _regulator_do_set_voltage() {
+ 5)               |              regulator_get_voltage_rdev() {
+ 5)               |                rk806_get_voltage_sel_regmap() {
+ 5)   0.292 us    |                  rdev_get_drvdata();
+ 5)   0.291 us    |                  rdev_get_id();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   0.292 us    |                        __cond_resched();
+ 5)   1.167 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)               |                      regcache_read() {
+ 5)   0.875 us    |                        regmap_volatile();
+ 5)   0.875 us    |                        regcache_rbtree_read();
+ 5)   2.917 us    |                      }
+ 5)   4.084 us    |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   0.583 us    |                      mutex_unlock();
+ 5)   0.875 us    |                    }
+ 5)   8.167 us    |                  }
+ 5)   9.917 us    |                }
+ 5)               |                regulator_list_voltage_linear_range() {
+ 5)   0.292 us    |                  regulator_desc_list_voltage_linear_range();
+ 5)   1.166 us    |                }
+ 5) + 11.958 us   |              }
+ 5)   0.583 us    |              rdev_get_name();
+ 5)               |              _regulator_is_enabled() {
+ 5)               |                rk806_regulator_is_enabled_regmap() {
+ 5)   0.583 us    |                  rdev_get_drvdata();
+ 5)   0.583 us    |                  rdev_get_id();
+ 5)               |                  get_dvs_mode() {
+ 5)   0.291 us    |                    rdev_get_drvdata();
+ 5)   0.292 us    |                    rdev_get_id();
+ 5)   1.750 us    |                  }
+ 5)               |                  rk806_field_read() {
+ 5)               |                    regmap_field_read() {
+ 5)               |                      regmap_read() {
+ 5)   0.291 us    |                        regmap_lock_mutex();
+ 5) ! 248.208 us  |                        _regmap_read();
+ 5)   0.292 us    |                        regmap_unlock_mutex();
+ 5) ! 251.708 us  |                      }
+ 5) ! 253.459 us  |                    }
+ 5) ! 254.041 us  |                  }
+ 5) ! 258.417 us  |                }
+ 5) ! 259.292 us  |              }
+ 5)               |              rk806_get_voltage_sel_regmap() {
+ 5)   0.291 us    |                rdev_get_drvdata();
+ 5)   0.292 us    |                rdev_get_id();
+ 5)               |                regmap_read() {
+ 5)               |                  regmap_lock_mutex() {
+ 5)               |                    mutex_lock() {
+ 5)               |                      __cond_resched() {
+ 5)   0.291 us    |                        rcu_all_qs();
+ 5)   0.875 us    |                      }
+ 5)   1.459 us    |                    }
+ 5)   2.625 us    |                  }
+ 5)               |                  _regmap_read() {
+ 5)               |                    regcache_read() {
+ 5)               |                      regmap_volatile() {
+ 5)   0.292 us    |                        regmap_readable();
+ 5)   0.583 us    |                        regmap_check_range_table();
+ 5)   2.042 us    |                      }
+ 5)               |                      regcache_rbtree_read() {
+ 5)   0.291 us    |                        regcache_rbtree_lookup();
+ 5)   0.292 us    |                        regcache_get_val();
+ 5)   2.042 us    |                      }
+ 5)   4.959 us    |                    }
+ 5)   5.541 us    |                  }
+ 5)               |                  regmap_unlock_mutex() {
+ 5)   0.583 us    |                    mutex_unlock();
+ 5)   0.875 us    |                  }
+ 5) + 10.792 us   |                }
+ 5) + 13.417 us   |              }
+ 5)               |              regulator_get_voltage_rdev() {
+ 5)               |                rk806_get_voltage_sel_regmap() {
+ 5)   0.583 us    |                  rdev_get_drvdata();
+ 5)   0.584 us    |                  rdev_get_id();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   0.584 us    |                        __cond_resched();
+ 5)   0.875 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)               |                      regcache_read() {
+ 5)   0.583 us    |                        regmap_volatile();
+ 5)   0.583 us    |                        regcache_rbtree_read();
+ 5)   2.625 us    |                      }
+ 5)   2.625 us    |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   0.584 us    |                      mutex_unlock();
+ 5)   1.166 us    |                    }
+ 5)   7.292 us    |                  }
+ 5)   9.042 us    |                }
+ 5)               |                regulator_list_voltage_linear_range() {
+ 5)   0.292 us    |                  regulator_desc_list_voltage_linear_range();
+ 5)   0.875 us    |                }
+ 5) + 12.250 us   |              }
+ 5)   0.292 us    |              blocking_notifier_call_chain();
+ 5)               |              rk806_set_voltage() {
+ 5)               |                regulator_map_voltage_linear_range() {
+ 5)               |                  regulator_list_voltage_linear_range() {
+ 5)   0.000 us    |                    regulator_desc_list_voltage_linear_range();
+ 5)   1.166 us    |                  }
+ 5)   1.750 us    |                }
+ 5)   0.291 us    |                rdev_get_drvdata();
+ 5)   0.584 us    |                rdev_get_id();
+ 5)               |                regmap_update_bits_base() {
+ 5)               |                  regmap_lock_mutex() {
+ 5)               |                    mutex_lock() {
+ 5)               |                      __cond_resched() {
+ 5)   0.292 us    |                        rcu_all_qs();
+ 5)   1.167 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)   2.333 us    |                  }
+ 5)               |                  _regmap_update_bits() {
+ 5)               |                    regmap_volatile() {
+ 5)   0.292 us    |                      regmap_readable();
+ 5)               |                      regmap_check_range_table() {
+ 5)   0.583 us    |                        regmap_reg_in_ranges();
+ 5)   0.292 us    |                        regmap_reg_in_ranges();
+ 5)   1.750 us    |                      }
+ 5)   3.500 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)               |                      regcache_read() {
+ 5)   0.583 us    |                        regmap_volatile();
+ 5)   0.292 us    |                        regcache_rbtree_read();
+ 5)   2.333 us    |                      }
+ 5)   2.917 us    |                    }
+ 5)               |                    _regmap_write() {
+ 5)   0.583 us    |                      regmap_writeable();
+ 5)               |                      _regmap_bus_raw_write() {
+ 5)   0.292 us    |                        regmap_format_8();
+ 5) + 91.584 us   |                        _regmap_raw_write_impl();
+ 5) + 93.333 us   |                      }
+ 5) + 95.083 us   |                    }
+ 5) ! 103.250 us  |                  }
+ 5)               |                  regmap_unlock_mutex() {
+ 5)   0.292 us    |                    mutex_unlock();
+ 5)   0.875 us    |                  }
+ 5) ! 107.917 us  |                }
+ 5)               |                get_dvs_mode() {
+ 5)   0.292 us    |                  rdev_get_drvdata();
+ 5)   0.583 us    |                  rdev_get_id();
+ 5)   1.750 us    |                }
+ 5) ! 114.916 us  |              }
+ 5)               |              regulator_list_voltage_linear_range() {
+ 5)   0.291 us    |                regulator_desc_list_voltage_linear_range();
+ 5)   0.875 us    |              }
+ 5)               |              regulator_set_voltage_time_sel() {
+ 5)               |                regulator_list_voltage_linear_range() {
+ 5)   0.292 us    |                  regulator_desc_list_voltage_linear_range();
+ 5)   1.167 us    |                }
+ 5)               |                regulator_list_voltage_linear_range() {
+ 5)   0.291 us    |                  regulator_desc_list_voltage_linear_range();
+ 5)   1.459 us    |                }
+ 5)   0.292 us    |                _regulator_set_voltage_time();
+ 5)   3.792 us    |              }
+ 5)               |              _regulator_delay_helper() {
+ 5)               |                usleep_range_state() {
+ 5)               |                  ktime_get() {
+ 5)   0.292 us    |                    arch_counter_read();
+ 5)   0.875 us    |                  }
+ 5)               |                  schedule_hrtimeout_range() {
+ 5)               |                    schedule_hrtimeout_range_clock() {
+ 5)               |                      hrtimer_init_sleeper() {
+ 5)   0.583 us    |                        __hrtimer_init();
+ 5)   1.167 us    |                      }
+ 5)   0.291 us    |                      ktime_add_safe();
+ 5)               |                      hrtimer_start_range_ns() {
+ 5)   0.583 us    |                        lock_hrtimer_base();
+ 5)   0.583 us    |                        ktime_add_safe();
+ 5)   0.292 us    |                        get_nohz_timer_target();
+ 5)   0.291 us    |                        enqueue_hrtimer();
+ 5)   0.875 us    |                        hrtimer_reprogram.constprop.0();
+ 5)   0.292 us    |                        _raw_spin_unlock_irqrestore();
+ 5)   6.125 us    |                      }
+ 5)               |                      schedule() {
+ 5)   0.875 us    |                        wq_worker_sleeping();
+ 5)   0.292 us    |                        rcu_note_context_switch();
+ 5)   0.584 us    |                        raw_spin_rq_lock_nested();
+ 5)   0.292 us    |                        update_rq_clock();
+ 5)   1.459 us    |                        deactivate_task();
+ 5)   0.583 us    |                        pick_next_task_fair();
+ 5)   0.875 us    |                        put_prev_task_fair();
+ 5)   0.583 us    |                        pick_next_task_idle();
+ 5)   0.584 us    |                        __traceiter_sched_switch();
+ 5)   0.875 us    |                        fpsimd_thread_switch();
+ 5)   0.584 us    |                        tls_preserve_current_state();
+ 5)   0.291 us    |                        hw_breakpoint_thread_switch();
+ 5)   0.292 us    |                        mte_thread_switch();
+ 5)   0.292 us    |                        finish_task_switch.isra.0();
+ 5)   0.292 us    |                        wq_worker_running();
+ 5) ! 122.791 us  |                      }
+ 5)               |                      hrtimer_cancel() {
+ 5)   0.583 us    |                        hrtimer_try_to_cancel();
+ 5)   1.167 us    |                      }
+ 5) ! 133.291 us  |                    }
+ 5) ! 133.875 us  |                  }
+ 5) ! 136.500 us  |                }
+ 5) ! 137.084 us  |              }
+ 5)               |              _notifier_call_chain.isra.0() {
+ 5)   0.291 us    |                blocking_notifier_call_chain();
+ 5)   1.458 us    |              }
+ 5) ! 559.417 us  |            }
+ 5) ! 560.583 us  |          }
+ 5) ! 561.750 us  |        }
+ 5) ! 562.042 us  |      }
+ 5) ! 564.667 us  |    }
+ 5)               |    regulator_unlock_recursive() {
+ 5)   0.584 us    |      regulator_supply_is_couple();
+ 5)               |      regulator_unlock_recursive() {
+ 5)   0.292 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_unlock_recursive() {
+ 5)               |          regulator_unlock() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   0.291 us    |                rcu_all_qs();
+ 5)   0.875 us    |              }
+ 5)   1.750 us    |            }
+ 5)               |            ww_mutex_unlock() {
+ 5)   0.291 us    |              mutex_unlock();
+ 5)   0.875 us    |            }
+ 5)   0.292 us    |            mutex_unlock();
+ 5)   4.667 us    |          }
+ 5)   5.250 us    |        }
+ 5)               |        regulator_unlock() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   0.291 us    |              rcu_all_qs();
+ 5)   0.875 us    |            }
+ 5)   1.459 us    |          }
+ 5)               |          ww_mutex_unlock() {
+ 5)   0.291 us    |            mutex_unlock();
+ 5)   0.583 us    |          }
+ 5)   0.291 us    |          mutex_unlock();
+ 5)   4.083 us    |        }
+ 5) + 11.375 us   |      }
+ 5)               |      regulator_unlock() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.584 us    |          }
+ 5)   1.166 us    |        }
+ 5)               |        ww_mutex_unlock() {
+ 5)   0.583 us    |          mutex_unlock();
+ 5)   1.167 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   4.084 us    |      }
+ 5) + 17.208 us   |    }
+ 5) ! 602.000 us  |  }
+ 5)               |  regulator_set_voltage() {
+ 5)               |    regulator_lock_dependent() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.291 us    |          rcu_all_qs();
+ 5)   1.167 us    |        }
+ 5)   1.459 us    |      }
+ 5)               |      regulator_lock_recursive() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.291 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.750 us    |        }
+ 5)   0.292 us    |        ww_mutex_trylock();
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   0.292 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_lock_recursive() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   0.000 us    |              rcu_all_qs();
+ 5)   0.875 us    |            }
+ 5)   1.750 us    |          }
+ 5)   0.583 us    |          ww_mutex_trylock();
+ 5)   0.292 us    |          mutex_unlock();
+ 5)   0.584 us    |          regulator_supply_is_couple();
+ 5)               |          regulator_lock_recursive() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   0.292 us    |                rcu_all_qs();
+ 5)   1.750 us    |              }
+ 5)   2.333 us    |            }
+ 5)   0.291 us    |            ww_mutex_trylock();
+ 5)   0.292 us    |            mutex_unlock();
+ 5)   4.375 us    |          }
+ 5)   9.625 us    |        }
+ 5) + 14.583 us   |      }
+ 5)   0.292 us    |      mutex_unlock();
+ 5) + 18.375 us   |    }
+ 5)               |    regulator_set_voltage_unlocked() {
+ 5)   0.291 us    |      regulator_ops_is_valid();
+ 5)               |      regulator_check_voltage() {
+ 5)   0.000 us    |        regulator_ops_is_valid();
+ 5)   1.166 us    |      }
+ 5)               |      regulator_balance_voltage() {
+ 5)               |        regulator_do_balance_voltage() {
+ 5)   0.292 us    |          regulator_check_consumers();
+ 5)               |          regulator_set_voltage_rdev() {
+ 5)   0.292 us    |            regulator_ops_is_valid();
+ 5)               |            _regulator_do_set_voltage() {
+ 5)               |              regulator_get_voltage_rdev() {
+ 5)               |                rk806_get_voltage_sel_regmap() {
+ 5)   0.292 us    |                  rdev_get_drvdata();
+ 5)   0.292 us    |                  rdev_get_id();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   0.291 us    |                        __cond_resched();
+ 5)   1.167 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)               |                      regcache_read() {
+ 5)   0.583 us    |                        regmap_volatile();
+ 5)   0.875 us    |                        regcache_rbtree_read();
+ 5)   2.334 us    |                      }
+ 5)   3.208 us    |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   0.292 us    |                      mutex_unlock();
+ 5)   0.875 us    |                    }
+ 5)   7.583 us    |                  }
+ 5) + 10.500 us   |                }
+ 5)               |                regulator_list_voltage_linear_range() {
+ 5)   0.583 us    |                  regulator_desc_list_voltage_linear_range();
+ 5)   1.167 us    |                }
+ 5) + 12.542 us   |              }
+ 5)   0.292 us    |              rdev_get_name();
+ 5)               |              _regulator_is_enabled() {
+ 5)               |                rk806_regulator_is_enabled_regmap() {
+ 5)   0.292 us    |                  rdev_get_drvdata();
+ 5)   0.291 us    |                  rdev_get_id();
+ 5)               |                  get_dvs_mode() {
+ 5)   0.583 us    |                    rdev_get_drvdata();
+ 5)   0.583 us    |                    rdev_get_id();
+ 5)   1.750 us    |                  }
+ 5)               |                  rk806_field_read() {
+ 5)               |                    regmap_field_read() {
+ 5)               |                      regmap_read() {
+ 5)   0.875 us    |                        regmap_lock_mutex();
+ 5) ! 150.209 us  |                        _regmap_read();
+ 5)   0.584 us    |                        regmap_unlock_mutex();
+ 5) ! 152.542 us  |                      }
+ 5) ! 154.292 us  |                    }
+ 5) ! 154.584 us  |                  }
+ 5) ! 158.958 us  |                }
+ 5) ! 159.542 us  |              }
+ 5)               |              rk806_get_voltage_sel_regmap() {
+ 5)   0.583 us    |                rdev_get_drvdata();
+ 5)   0.292 us    |                rdev_get_id();
+ 5)               |                regmap_read() {
+ 5)               |                  regmap_lock_mutex() {
+ 5)               |                    mutex_lock() {
+ 5)               |                      __cond_resched() {
+ 5)   0.292 us    |                        rcu_all_qs();
+ 5)   1.167 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)   2.333 us    |                  }
+ 5)               |                  _regmap_read() {
+ 5)               |                    regcache_read() {
+ 5)               |                      regmap_volatile() {
+ 5)   0.292 us    |                        regmap_readable();
+ 5)   0.292 us    |                        regmap_check_range_table();
+ 5)   1.750 us    |                      }
+ 5)               |                      regcache_rbtree_read() {
+ 5)   0.292 us    |                        regcache_rbtree_lookup();
+ 5)   0.583 us    |                        regcache_get_val();
+ 5)   1.750 us    |                      }
+ 5)   4.958 us    |                    }
+ 5)   5.542 us    |                  }
+ 5)               |                  regmap_unlock_mutex() {
+ 5)   0.292 us    |                    mutex_unlock();
+ 5)   2.042 us    |                  }
+ 5) + 11.084 us   |                }
+ 5) + 13.417 us   |              }
+ 5)               |              regulator_get_voltage_rdev() {
+ 5)               |                rk806_get_voltage_sel_regmap() {
+ 5)   0.583 us    |                  rdev_get_drvdata();
+ 5)   0.292 us    |                  rdev_get_id();
+ 5)               |                  regmap_read() {
+ 5)               |                    regmap_lock_mutex() {
+ 5)               |                      mutex_lock() {
+ 5)   0.584 us    |                        __cond_resched();
+ 5)   1.458 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)               |                      regcache_read() {
+ 5)   0.291 us    |                        regmap_volatile();
+ 5)   0.583 us    |                        regcache_rbtree_read();
+ 5)   2.042 us    |                      }
+ 5)   2.625 us    |                    }
+ 5)               |                    regmap_unlock_mutex() {
+ 5)   0.000 us    |                      mutex_unlock();
+ 5)   1.166 us    |                    }
+ 5)   7.292 us    |                  }
+ 5)   9.042 us    |                }
+ 5)               |                regulator_list_voltage_linear_range() {
+ 5)   0.000 us    |                  regulator_desc_list_voltage_linear_range();
+ 5)   0.875 us    |                }
+ 5) + 11.666 us   |              }
+ 5)   0.583 us    |              blocking_notifier_call_chain();
+ 5)               |              rk806_set_voltage() {
+ 5)               |                regulator_map_voltage_linear_range() {
+ 5)               |                  regulator_list_voltage_linear_range() {
+ 5)   0.292 us    |                    regulator_desc_list_voltage_linear_range();
+ 5)   1.167 us    |                  }
+ 5)   1.750 us    |                }
+ 5)   0.292 us    |                rdev_get_drvdata();
+ 5)   0.583 us    |                rdev_get_id();
+ 5)               |                regmap_update_bits_base() {
+ 5)               |                  regmap_lock_mutex() {
+ 5)               |                    mutex_lock() {
+ 5)               |                      __cond_resched() {
+ 5)   0.000 us    |                        rcu_all_qs();
+ 5)   1.167 us    |                      }
+ 5)   1.750 us    |                    }
+ 5)   2.334 us    |                  }
+ 5)               |                  _regmap_update_bits() {
+ 5)               |                    regmap_volatile() {
+ 5)   0.000 us    |                      regmap_readable();
+ 5)               |                      regmap_check_range_table() {
+ 5)   0.292 us    |                        regmap_reg_in_ranges();
+ 5)   0.291 us    |                        regmap_reg_in_ranges();
+ 5)   1.750 us    |                      }
+ 5)   3.208 us    |                    }
+ 5)               |                    _regmap_read() {
+ 5)               |                      regcache_read() {
+ 5)   0.875 us    |                        regmap_volatile();
+ 5)   0.583 us    |                        regcache_rbtree_read();
+ 5)   2.333 us    |                      }
+ 5)   2.916 us    |                    }
+ 5)   7.292 us    |                  }
+ 5)               |                  regmap_unlock_mutex() {
+ 5)   0.292 us    |                    mutex_unlock();
+ 5)   0.875 us    |                  }
+ 5) + 11.958 us   |                }
+ 5)               |                get_dvs_mode() {
+ 5)   0.292 us    |                  rdev_get_drvdata();
+ 5)   0.291 us    |                  rdev_get_id();
+ 5)   1.750 us    |                }
+ 5) + 17.792 us   |              }
+ 5)               |              regulator_list_voltage_linear_range() {
+ 5)   0.292 us    |                regulator_desc_list_voltage_linear_range();
+ 5)   1.166 us    |              }
+ 5)               |              _regulator_delay_helper() {
+ 5)               |                __udelay() {
+ 5)               |                  __delay() {
+ 5)   0.583 us    |                    arch_timer_evtstrm_available();
+ 5)   1.167 us    |                  }
+ 5)   1.750 us    |                }
+ 5)   2.333 us    |              }
+ 5)               |              _notifier_call_chain.isra.0() {
+ 5)   0.291 us    |                blocking_notifier_call_chain();
+ 5)   1.167 us    |              }
+ 5) ! 224.875 us  |            }
+ 5) ! 226.042 us  |          }
+ 5) ! 227.500 us  |        }
+ 5) ! 228.375 us  |      }
+ 5) ! 231.292 us  |    }
+ 5)               |    regulator_unlock_recursive() {
+ 5)   0.583 us    |      regulator_supply_is_couple();
+ 5)               |      regulator_unlock_recursive() {
+ 5)   0.291 us    |        regulator_supply_is_couple();
+ 5)               |        regulator_unlock_recursive() {
+ 5)               |          regulator_unlock() {
+ 5)               |            mutex_lock() {
+ 5)               |              __cond_resched() {
+ 5)   0.291 us    |                rcu_all_qs();
+ 5)   1.167 us    |              }
+ 5)   1.750 us    |            }
+ 5)               |            ww_mutex_unlock() {
+ 5)   0.291 us    |              mutex_unlock();
+ 5)   1.167 us    |            }
+ 5)   0.292 us    |            mutex_unlock();
+ 5)   4.959 us    |          }
+ 5)   5.833 us    |        }
+ 5)               |        regulator_unlock() {
+ 5)               |          mutex_lock() {
+ 5)               |            __cond_resched() {
+ 5)   0.291 us    |              rcu_all_qs();
+ 5)   0.875 us    |            }
+ 5)   2.041 us    |          }
+ 5)               |          ww_mutex_unlock() {
+ 5)   0.291 us    |            mutex_unlock();
+ 5)   0.875 us    |          }
+ 5)   0.292 us    |          mutex_unlock();
+ 5)   4.375 us    |        }
+ 5) + 11.958 us   |      }
+ 5)               |      regulator_unlock() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.000 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.750 us    |        }
+ 5)               |        ww_mutex_unlock() {
+ 5)   0.292 us    |          mutex_unlock();
+ 5)   0.875 us    |        }
+ 5)   0.000 us    |        mutex_unlock();
+ 5)   4.666 us    |      }
+ 5) + 18.667 us   |    }
+ 5) ! 270.084 us  |  }

@@ -1,0 +1,149 @@
+0010f000-0010f0ff : 10f000.sram sram@10f000
+00200000-efffffff : System RAM
+  00410000-01b2ffff : Kernel code
+  01b30000-0224ffff : reserved
+  02250000-026cffff : Kernel data
+  08300000-08343fff : reserved
+  0a200000-0b535fff : reserved
+  10000000-1fffffff : reserved
+  ec000000-efffffff : reserved
+f0000000-f00fffff : fe150000.pcie config
+f0200000-f0ffffff : pcie@fe150000
+  f0200000-f02fffff : PCI Bus 0000:01
+    f0200000-f0203fff : 0000:01:00.0
+      f0200000-f0203fff : nvme
+  f0300000-f030ffff : 0000:00:00.0
+f2000000-f20fffff : fe170000.pcie config
+f2200000-f2ffffff : pcie@fe170000
+  f2200000-f220ffff : 0002:20:00.0
+f4000000-f40fffff : fe190000.pcie config
+f4200000-f4ffffff : pcie@fe190000
+  f4200000-f42fffff : PCI Bus 0004:41
+    f4200000-f420ffff : 0004:41:00.0
+    f4210000-f4213fff : 0004:41:00.0
+  f4300000-f430ffff : 0004:40:00.0
+fb000000-fb1fffff : fb000000.gpu gpu@fb000000
+fc00c100-fc3fffff : fc000000.usb usb@fc000000
+fc400000-fc407fff : usb@fc400000
+  fc400000-fc407fff : xhci-hcd.13.auto usb@fc400000
+fc40c100-fc7fffff : fc400000.usb usb@fc400000
+fc800000-fc83ffff : fc800000.usb usb@fc800000
+fc840000-fc87ffff : fc840000.usb usb@fc840000
+fc880000-fc8bffff : fc880000.usb usb@fc880000
+fc8c0000-fc8fffff : fc8c0000.usb usb@fc8c0000
+fcd00000-fcd07fff : usb@fcd00000
+  fcd00000-fcd07fff : xhci-hcd.12.auto usb@fcd00000
+fcd0c100-fd0fffff : fcd00000.usb usb@fcd00000
+fd880000-fd880fff : fd880000.i2c i2c@fd880000
+fd8a0000-fd8a00ff : fd8a0000.gpio gpio@fd8a0000
+fda40000-fda400ff : fda40000.pvtm pvtm@fda40000
+fda50000-fda500ff : fda50000.pvtm pvtm@fda50000
+fda60000-fda600ff : fda60000.pvtm pvtm@fda60000
+fdab9000-fdab90ff : fdab9000.iommu iommu@fdab9000
+fdaba000-fdaba0ff : fdab9000.iommu iommu@fdab9000
+fdaca000-fdaca0ff : fdab9000.iommu iommu@fdab9000
+fdada000-fdada0ff : fdab9000.iommu iommu@fdab9000
+fdaf0000-fdaf00ff : fdaf0000.pvtm pvtm@fdaf0000
+fdb30000-fdb300ff : fdb30000.pvtm pvtm@fdb30000
+fdb50800-fdb5083f : fdb50800.iommu iommu@fdb50800
+fdb60f00-fdb60fff : fdb60f00.iommu iommu@fdb60f00
+fdb70f00-fdb70fff : fdb70f00.iommu iommu@fdb70f00
+fdb90480-fdb904bf : fdb90480.iommu iommu@fdb90480
+fdba0800-fdba083f : fdba0800.iommu iommu@fdba0800
+fdba4800-fdba483f : fdba4800.iommu iommu@fdba4800
+fdba8800-fdba883f : fdba8800.iommu iommu@fdba8800
+fdbac800-fdbac83f : fdbac800.iommu iommu@fdbac800
+fdbb0800-fdbb08ff : fdbb0800.iommu iommu@fdbb0800
+fdbdf000-fdbdf03f : fdbdf000.iommu iommu@fdbdf000
+fdbdf040-fdbdf07f : fdbdf000.iommu iommu@fdbdf000
+fdbef000-fdbef03f : fdbef000.iommu iommu@fdbef000
+fdbef040-fdbef07f : fdbef000.iommu iommu@fdbef000
+fdc38700-fdc3873f : fdc38700.iommu iommu@fdc38700
+fdc38740-fdc3877f : fdc38700.iommu iommu@fdc38700
+fdc48700-fdc4873f : fdc48700.iommu iommu@fdc48700
+fdc48740-fdc4877f : fdc48700.iommu iommu@fdc48700
+fdca0000-fdca05ff : fdca0000.iommu iommu@fdca0000
+fdd10000-fdd1ffff : fdd10000.mipi0-csi2-hw csihost_regs
+fdd20000-fdd2ffff : fdd20000.mipi1-csi2-hw csihost_regs
+fdd30000-fdd3ffff : fdd30000.mipi2-csi2-hw csihost_regs
+fdd40000-fdd4ffff : fdd40000.mipi3-csi2-hw csihost_regs
+fdd50000-fdd5ffff : fdd50000.mipi4-csi2-hw csihost_regs
+fdd60000-fdd6ffff : fdd60000.mipi5-csi2-hw csihost_regs
+fdd90000-fdd941ff : fdd90000.vop regs
+fdd95000-fdd95fff : fdd90000.vop gamma_lut
+fdd97e00-fdd97eff : fdd97e00.iommu iommu@fdd97e00
+fdd97f00-fdd97fff : fdd97e00.iommu iommu@fdd97e00
+fddb0000-fddb0fff : fddb0000.spdif-tx spdif-tx@fddb0000
+fddf0000-fddf0fff : fddf0000.i2s i2s@fddf0000
+fddf4000-fddf4fff : fddf4000.i2s i2s@fddf4000
+fddf8000-fddf8fff : fddf8000.i2s i2s@fddf8000
+fde50000-fde53fff : fde50000.dp dp@fde50000
+fde80000-fde8ffff : fde80000.hdmi hdmi@fde80000
+fde90000-fde9ffff : fde80000.hdmi hdmi@fde80000
+fdea0000-fdeaffff : fdea0000.hdmi hdmi@fdea0000
+fdeb0000-fdebffff : fdea0000.hdmi hdmi@fdea0000
+fdee0000-fdee5fff : fdee0000.hdmirx-controller hdmirx_regs
+fe060000-fe06ffff : fe060000.dfi dfi@fe060000
+fe150000-fe15ffff : fe150000.pcie pcie-apb
+fe170000-fe17ffff : fe170000.pcie pcie-apb
+fe190000-fe19ffff : fe190000.pcie pcie-apb
+fe2b0000-fe2b3fff : fe2b0000.spi spi@fe2b0000
+fe2c0000-fe2c3fff : fe2c0000.mmc mmc@fe2c0000
+fe2d0000-fe2d3fff : fe2d0000.mmc mmc@fe2d0000
+fe2e0000-fe2effff : fe2e0000.mmc mmc@fe2e0000
+fe378000-fe3781ff : fe378000.rng rng@fe378000
+fe470000-fe470fff : fe470000.i2s i2s@fe470000
+fe600000-fe60ffff : GICD
+fe680000-fe77ffff : GICR
+fea10000-fea13fff : dma-controller@fea10000
+  fea10000-fea13fff : fea10000.dma-controller dma-controller@fea10000
+fea30000-fea33fff : dma-controller@fea30000
+  fea30000-fea33fff : fea30000.dma-controller dma-controller@fea30000
+fea90000-fea90fff : fea90000.i2c i2c@fea90000
+feac0000-feac0fff : feac0000.i2c i2c@feac0000
+feaf0000-feaf00ff : feaf0000.watchdog watchdog@feaf0000
+feb20000-feb20fff : feb20000.spi spi@feb20000
+feb90000-feb9001f : serial
+fec00000-fec003ff : fec00000.tsadc tsadc@fec00000
+fec10000-fec1ffff : fec10000.saradc saradc@fec10000
+fec20000-fec200ff : fec20000.gpio gpio@fec20000
+fec30000-fec300ff : fec30000.gpio gpio@fec30000
+fec40000-fec400ff : fec40000.gpio gpio@fec40000
+fec50000-fec500ff : fec50000.gpio gpio@fec50000
+fec80000-fec80fff : fec80000.i2c i2c@fec80000
+fec90000-fec90fff : fec90000.i2c i2c@fec90000
+fecc0000-fecc03ff : fecc0000.otp otp@fecc0000
+fed10000-fed13fff : dma-controller@fed10000
+  fed10000-fed13fff : fed10000.dma-controller dma-controller@fed10000
+fed60000-fed61fff : fed60000.hdmiphy hdmiphy@fed60000
+fed70000-fed71fff : fed70000.hdmiphy hdmiphy@fed70000
+fed80000-fed8ffff : fed80000.phy phy@fed80000
+fed90000-fed9ffff : fed90000.phy phy@fed90000
+feda0000-fedaffff : feda0000.phy phy@feda0000
+fedb0000-fedbffff : fedb0000.phy phy@fedb0000
+fedc0000-fedc7fff : fedc0000.csi2-dphy0-hw csi2-dphy0-hw@fedc0000
+fedc8000-fedcffff : fedc8000.csi2-dphy1-hw csi2-dphy1-hw@fedc8000
+fee00000-fee000ff : fee00000.phy phy@fee00000
+fee10000-fee100ff : fee10000.phy phy@fee10000
+fee20000-fee200ff : fee20000.phy phy@fee20000
+fee80000-fee9ffff : fee80000.phy phy@fee80000
+ff001000-ff0effff : ff001000.sram sram@ff001000
+100000000-1ffffffff : System RAM
+2f0000000-2ffffffff : System RAM
+  2f6050000-2fedfffff : reserved
+  2fee8c000-2fee8cfff : reserved
+  2fee8e000-2fee8ffff : reserved
+  2fee90000-2feea3fff : reserved
+  2feea4000-2feea4fff : reserved
+  2feea5000-2ffffffff : reserved
+900000000-93fffffff : pcie@fe150000
+980000000-9bfffffff : pcie@fe170000
+  980000000-9801fffff : PCI Bus 0002:21
+    980000000-9800fffff : 0002:21:00.0
+      980000000-9800fffff : 0002:21:00.0
+    980100000-980103fff : 0002:21:00.0
+    980104000-980104fff : 0002:21:00.0
+a00000000-a3fffffff : pcie@fe190000
+a40000000-a403fffff : fe150000.pcie pcie-dbi
+a40800000-a40bfffff : fe170000.pcie pcie-dbi
+a41000000-a413fffff : fe190000.pcie pcie-dbi

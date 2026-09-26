@@ -1,0 +1,343 @@
+module,start,size,dt_nodes,status,drivers
+PCIe3_4L_S,f0000000,16MB,,no-node,
+PCIe3_2L_S,f1000000,16MB,,no-node,
+PCIe3_1L0_S,f2000000,16MB,,no-node,
+PCIe3_1L1_S,f3000000,16MB,,no-node,
+PCIe3_1L2_S,f4000000,16MB,,no-node,
+PCIe3_4L_DBI,f5000000,4MB,,no-node,
+PCIe3_2L_DBI,f5400000,4MB,,no-node,
+PCIe3_1L0_DBI,f5800000,4MB,,no-node,
+PCIe3_1L1_DBI,f5c00000,4MB,,no-node,
+PCIe3_1L2_DBI,f6000000,4MB,,no-node,
+Reserved,f6400000,11MB,,no-node,
+MCU_TCM,f6f00000,64KB,,no-node,
+MCU_CACHE,f6f10000,64KB,,no-node,
+MCU_RAM_TEST,f6f20000,64KB,,no-node,
+Reserved,f6f30000,832KB,,no-node,
+DDRCTL_0,f7000000,16MB,,no-node,
+DDRCTL_1,f8000000,16MB,,no-node,
+DDRCTL_2,f9000000,16MB,,no-node,
+DDRCTL_3,fa000000,16MB,,no-node,
+GPU G610,fb000000,16MB,gpu-mali@fb000000 gpu@fb000000,disabled/okay,mali-bifrost rk3588-mali
+USB3_0,fc000000,4MB,,no-node,
+USB3_1,fc400000,4MB,,no-node,
+USB2HOST_0,fc800000,512KB,usb@fc800000 usb@fc840000,okay,rk3588-ehci rk3588-ohci
+USB2HOST_1,fc880000,512KB,usb@fc880000 usb@fc8c0000,okay,rk3588-ehci rk3588-ohci
+MMU600_PCIE,fc900000,2MB,iommu@fc900000,disabled,smmu-v3
+MMU600_PHP,fcb00000,2MB,iommu@fcb00000,disabled,smmu-v3
+USB3_2,fcd00000,4MB,,no-node,
+DAPLITE2,fd100000,512KB,debug@fd104000 cspmu@fd10c000,okay,cspmu debug
+Reserved,fd180000,512KB,,no-node,
+Reserved,fd200000,64KB,,no-node,
+Reserved,fd210000,3520KB,,no-node,
+PMU0_SGRF,fd580000,8KB,,no-node,
+PMU1_SGRF,fd582000,8KB,,no-node,
+Reserved,fd584000,8KB,,no-node,
+BUS_SGRF,fd586000,4KB,,no-node,
+DSU_SGRF,fd587000,4KB,,no-node,
+PMU0_GRF,fd588000,8KB,syscon@fd588000,okay,rk3588-pmu0-grf
+PMU1_GRF,fd58a000,8KB,syscon@fd58a000,okay,rk3588-pmu1-grf
+SYS_GRF,fd58c000,16KB,syscon@fd58c000,okay,rk3588-sys-grf
+BIGCORE0_GRF,fd590000,8KB,syscon@fd590000,okay,rk3588-bigcore0-grf
+BIGCORE1_GRF,fd592000,8KB,syscon@fd592000,okay,rk3588-bigcore1-grf
+LITCORE_GRF,fd594000,16KB,syscon@fd594000,okay,rk3588-litcore-grf
+DSU_GRF,fd598000,16KB,syscon@fd598000,okay,rk3588-dsu-grf
+DDR01_GRF,fd59c000,4KB,,no-node,
+DDR23_GRF,fd59d000,4KB,,no-node,
+CENTER_GRF,fd59e000,8KB,,no-node,
+GPU_GRF,fd5a0000,8KB,syscon@fd5a0000,okay,rk3588-gpu-grf
+NPU_GRF,fd5a2000,8KB,syscon@fd5a2000,okay,rk3588-npu-grf
+VOP_GRF,fd5a4000,8KB,syscon@fd5a4000,okay,rk3588-vop-grf
+VO0_GRF,fd5a6000,8KB,syscon@fd5a6000,okay,rk3588-vo-grf
+VO1_GRF,fd5a8000,16KB,syscon@fd5a8000,okay,rk3588-vo-grf
+USB_GRF,fd5ac000,16KB,syscon@fd5ac000,okay,rk3588-usb-grf
+PHP_GRF,fd5b0000,16KB,syscon@fd5b0000,okay,rk3588-php-grf
+CSIDPHY0_GRF,fd5b4000,4KB,syscon@fd5b4000,okay,mipi-dphy-grf
+CSIDPHY1_GRF,fd5b5000,4KB,syscon@fd5b5000,okay,mipi-dphy-grf
+Reserved,fd5b6000,8KB,,no-node,
+PCIe3PHY_GRF,fd5b8000,16KB,syscon@fd5b8000,okay,pcie30-phy-grf
+PIPE_PHY0_GRF,fd5bc000,16KB,syscon@fd5bc000,okay,pipe-phy-grf
+PIPE_PHY1_GRF,fd5c0000,16KB,syscon@fd5c0000,okay,pipe-phy-grf
+PIPE_PHY2_GRF,fd5c4000,16KB,syscon@fd5c4000,okay,pipe-phy-grf
+USBDPPHY0_GRF,fd5c8000,16KB,syscon@fd5c8000,okay,rk3588-usbdpphy-grf
+USBDPPHY1_GRF,fd5cc000,16KB,syscon@fd5cc000,okay,rk3588-usbdpphy-grf
+USB2PHY0_GRF,fd5d0000,16KB,syscon@fd5d0000,okay,rk3588-usb2phy-grf
+USB2PHY1_GRF,fd5d4000,16KB,syscon@fd5d4000,okay,rk3588-usb2phy-grf
+USB2PHY2_GRF,fd5d8000,16KB,syscon@fd5d8000,okay,rk3588-usb2phy-grf
+USB2PHY3_GRF,fd5dc000,16KB,syscon@fd5dc000,okay,rk3588-usb2phy-grf
+HDPTXPHY0_GRF,fd5e0000,16KB,syscon@fd5e0000,okay,rk3588-hdptxphy-grf
+HDPTXPHY1_GRF,fd5e4000,16KB,syscon@fd5e4000,okay,rk3588-hdptxphy-grf
+MIPIDCPHY0_GRF,fd5e8000,16KB,syscon@fd5e8000,okay,mipi-dcphy-grf
+MIPIDCPHY1_GRF,fd5ec000,16KB,syscon@fd5ec000,okay,mipi-dcphy-grf
+PMU1_IOC,fd5f0000,16KB,syscon@fd5f0000,okay,rk3588-ioc
+PMU2_IOC,fd5f4000,16KB,,no-node,
+BUS_IOC,fd5f8000,4KB,,no-node,
+VCCIO1_4_IOC,fd5f9000,4KB,,no-node,
+VCCIO3_5_IOC,fd5fa000,4KB,,no-node,
+VCCIO2_IOC,fd5fb000,4KB,,no-node,
+VCCIO6_IOC,fd5fc000,4KB,,no-node,
+EMMC_IOC,fd5fd000,4KB,,no-node,
+Reserved,fd5fe000,8KB,,no-node,
+SYSTEM_SRAM,fd600000,1MB,,no-node,
+PMU_MEM,fd700000,256KB,,no-node,
+Reserved,fd740000,512KB,,no-node,
+CRU_NS,fd7c0000,32KB,clock-controller@fd7c0000,okay,rk3588-cru
+PHP_PPLL_CRU,fd7c8000,32KB,,no-node,
+SEC_SCRU,fd7d0000,32KB,,no-node,
+BUS_SCRU,fd7d8000,32KB,,no-node,
+PMU1_SCRU,fd7e0000,64KB,,no-node,
+PMU1_CRU,fd7f0000,64KB,,no-node,
+DDRPHY0_CRU,fd800000,16KB,,no-node,
+DDRPHY1_CRU,fd804000,16KB,,no-node,
+DDRPHY2_CRU,fd808000,16KB,,no-node,
+DDRPHY3_CRU,fd80c000,16KB,,no-node,
+BIGCORE0_CRU,fd810000,8KB,,no-node,
+BIGCORE1_CRU,fd812000,8KB,,no-node,
+Reserved,fd814000,16KB,,no-node,
+DSU_CRU,fd818000,16KB,,no-node,
+Reserved,fd81c000,400KB,,no-node,
+I2C0,fd880000,64KB,i2c@fd880000,okay,rk3588-i2c
+UART0,fd890000,64KB,serial@fd890000,disabled,rk3588-uart
+GPIO0,fd8a0000,64KB,,no-node,
+PWM0,fd8b0000,64KB,pwm@fd8b0000 pwm@fd8b0010 pwm@fd8b0020 pwm@fd8b0030,disabled/okay,rk3588-pwm
+PVTM_PMU,fd8c0000,32KB,,no-node,
+HPTIMER,fd8c8000,16KB,,no-node,
+Reserved,fd8cc000,16KB,,no-node,
+PMU,fd8d0000,64KB,power-management@fd8d8000,okay,rk3588-pmu
+WDT_PMU,fd8e0000,64KB,,no-node,
+TIMER_PMU(2CH),fd8f0000,64KB,,no-node,
+Reserved,fd900000,704KB,,no-node,
+OSC_CHK,fd9b0000,64KB,,no-node,
+SCRAMBLE_KEY,fd9c0000,64KB,,no-node,
+Reserved,fd9d0000,448KB,,no-node,
+PVTM_CORE_B0,fda40000,32KB,pvtm@fda40000,okay,rk3588-bigcore0-pvtm
+Reserved,fda48000,32KB,,no-node,
+PVTM_CORE_B1,fda50000,32KB,pvtm@fda50000,okay,rk3588-bigcore1-pvtm
+Reserved,fda58000,32KB,,no-node,
+PVTM_CORE_L,fda60000,64KB,pvtm@fda60000,okay,rk3588-litcore-pvtm
+Reserved,fda70000,256KB,,no-node,
+RKNN C0,fdab0000,64KB,npu@fdab0000 iommu@fdab9000,okay,iommu-v2 rk3588-rknpu
+RKNN C1,fdac0000,64KB,,no-node,
+RKNN C2,fdad0000,64KB,,no-node,
+Reserved,fdae0000,64KB,,no-node,
+PVTM_NPU,fdaf0000,32KB,pvtm@fdaf0000,okay,rk3588-npu-pvtm
+WDT_NPU,fdaf8000,32KB,,no-node,
+TIMER_NPU(2CH),fdb00000,32KB,,no-node,
+Reserved,fdb08000,160KB,,no-node,
+PVTM_GPU,fdb30000,64KB,pvtm@fdb30000,okay,rk3588-gpu-pvtm
+Reserved,fdb40000,64KB,,no-node,
+VDPU,fdb50000,64KB,vepu@fdb50000 vdpu@fdb50400 iommu@fdb50800 avsd-plus@fdb51000,disabled/okay,avs-plus-decoder iommu-v2 vpu-decoder-v2 vpu-encoder-v2
+RGA3_0,fdb60000,64KB,rga@fdb60000 iommu@fdb60f00,okay,iommu-v2 rga3_core0
+RGA3_1,fdb70000,64KB,rga@fdb70000 iommu@fdb70f00,okay,iommu-v2 rga3_core1
+RGA2,fdb80000,64KB,rga@fdb80000,okay,rga2_core0
+JPEG_DEC,fdb90000,64KB,jpegd@fdb90000 iommu@fdb90480,okay,iommu-v2 rkv-jpeg-decoder-v1
+JPEG_ENC0,fdba0000,16KB,jpege-core@fdba0000 iommu@fdba0800,okay,iommu-v2 vpu-jpege-core
+JPEG_ENC1,fdba4000,16KB,jpege-core@fdba4000 iommu@fdba4800,okay,iommu-v2 vpu-jpege-core
+JPEG_ENC2,fdba8000,16KB,jpege-core@fdba8000 iommu@fdba8800,okay,iommu-v2 vpu-jpege-core
+JPEG_ENC3,fdbac000,16KB,jpege-core@fdbac000 iommu@fdbac800,okay,iommu-v2 vpu-jpege-core
+IEP,fdbb0000,64KB,iep@fdbb0000 iommu@fdbb0800,okay,iep-v2 iommu-v2
+Reserved,fdbc0000,64KB,,no-node,
+RKVENC0,fdbd0000,64KB,rkvenc-core@fdbd0000 iommu@fdbdf000,okay,iommu-v2 rkv-encoder-v2-core
+RKVENC1,fdbe0000,64KB,rkvenc-core@fdbe0000 iommu@fdbef000,okay,iommu-v2 rkv-encoder-v2-core
+Reserved,fdbf0000,256KB,,no-node,
+RKVDEC_CCU,fdc30000,32KB,rkvdec-ccu@fdc30000,okay,rkv-decoder-v2-ccu
+RKVDEC0,fdc38000,32KB,rkvdec-core@fdc38000 iommu@fdc38700,okay,iommu-v2 rkv-decoder-v2
+RKVDEC1,fdc40000,64KB,rkvdec-core@fdc48000 iommu@fdc48700,okay,iommu-v2 rkv-decoder-v2
+Reserved,fdc50000,128KB,,no-node,
+AV1,fdc70000,256KB,av1d@fdc70000 iommu@fdca0000,okay,av1-decoder iommu-av1d
+ISP0,fdcb0000,64KB,rkisp@fdcb0000 rkisp-unite@fdcb0000 iommu@fdcb7f00 rkisp-unite-mmu@fdcb7f00,disabled,iommu-v2 rk3588-rkisp rk3588-rkisp-unite
+ISP1,fdcc0000,64KB,rkisp@fdcc0000 iommu@fdcc7f00,disabled,iommu-v2 rk3588-rkisp
+FISHEYE0,fdcd0000,32KB,rkispp@fdcd0000 iommu@fdcd0f00,disabled,iommu-v2 rk3588-rkispp
+FISHEYE1,fdcd8000,32KB,rkispp@fdcd8000 iommu@fdcd8f00,disabled,iommu-v2 rk3588-rkispp
+VICAP,fdce0000,128KB,rkcif@fdce0000 iommu@fdce0800,disabled,iommu-v2 rk3588-cif
+Reserved,fdd00000,64KB,,no-node,
+CSI HOST0,fdd10000,64KB,mipi0-csi2-hw@fdd10000,okay,rk3588-mipi-csi2-hw
+CSI HOST1,fdd20000,64KB,mipi1-csi2-hw@fdd20000,okay,rk3588-mipi-csi2-hw
+CSI HOST2,fdd30000,64KB,mipi2-csi2-hw@fdd30000,okay,rk3588-mipi-csi2-hw
+CSI HOST3,fdd40000,64KB,mipi3-csi2-hw@fdd40000,okay,rk3588-mipi-csi2-hw
+CSI HOST4,fdd50000,64KB,mipi4-csi2-hw@fdd50000,okay,rk3588-mipi-csi2-hw
+CSI HOST5,fdd60000,64KB,mipi5-csi2-hw@fdd60000,okay,rk3588-mipi-csi2-hw
+Reserved,fdd70000,128KB,,no-node,
+VOP,fdd90000,64KB,vop@fdd90000 iommu@fdd97e00,okay,iommu-v2 rk3588-vop
+HDCP0_MMU,fdda0000,64KB,,no-node,
+SPDIF_TX2,fddb0000,32KB,spdif-tx@fddb0000,okay,rk3588-spdif
+SPDIF_TX5,fddb8000,32KB,spdif-tx@fddb8000,disabled,rk3588-spdif
+I2S4_8CH,fddc0000,32KB,i2s@fddc0000,disabled,rk3588-i2s-tdm
+I2S8_8CH,fddc8000,32KB,i2s@fddc8000,disabled,rk3588-i2s-tdm
+HDCP1_MMU,fddd0000,64KB,,no-node,
+SPDIF_TX3,fdde0000,32KB,spdif-tx@fdde0000,disabled,rk3588-spdif
+SPDIF_TX4,fdde8000,32KB,spdif-tx@fdde8000,disabled,rk3588-spdif
+I2S5_8CH,fddf0000,16KB,i2s@fddf0000,okay,rk3588-i2s-tdm
+I2S6_8CH,fddf4000,16KB,i2s@fddf4000,okay,rk3588-i2s-tdm
+I2S7_8CH,fddf8000,16KB,i2s@fddf8000,okay,rk3588-i2s-tdm
+I2S9_8CH,fddfc000,16KB,i2s@fddfc000,disabled,rk3588-i2s-tdm
+I2S10_8CH,fde00000,16KB,i2s@fde00000,disabled,rk3588-i2s-tdm
+Reserved,fde04000,16KB,,no-node,
+SPDIF_RX0,fde08000,32KB,spdif-rx@fde08000,disabled,rk3588-spdifrx
+SPDIF_RX1,fde10000,32KB,spdif-rx@fde10000,disabled,rk3588-spdifrx
+SPDIF_RX2,fde18000,32KB,spdif-rx@fde18000,disabled,rk3588-spdifrx
+DSI HOST0,fde20000,64KB,dsi@fde20000,disabled,rk3588-mipi-dsi2
+DSI HOST1,fde30000,64KB,dsi@fde30000,disabled,rk3588-mipi-dsi2
+HDCP0,fde40000,32KB,hdcp@fde40000,disabled,rk3588-hdcp
+HDCP0_TRNG,fde48000,32KB,,no-node,
+DP0,fde50000,64KB,dp@fde50000,okay,rk3588-dp
+DP1,fde60000,64KB,dp@fde60000,disabled,rk3588-dp
+HDCP1,fde70000,32KB,hdcp@fde70000,disabled,rk3588-hdcp
+HDCP1_TRNG,fde78000,32KB,,no-node,
+HDMI TX0,fde80000,128KB,hdmi@fde80000,okay,rk3588-dw-hdmi
+HDMI TX1,fdea0000,128KB,hdmi@fdea0000,okay,rk3588-dw-hdmi
+eDP0,fdec0000,64KB,edp@fdec0000,disabled,rk3588-edp
+eDP1,fded0000,64KB,edp@fded0000,disabled,rk3588-edp
+HDMI RX,fdee0000,64KB,hdmirx-controller@fdee0000,okay,rk3588-hdmirx-ctrler
+HDCP_KEY 0,fdef0000,32KB,,no-node,
+HDCP_KEY 1,fdef8000,64KB,,no-node,
+Reserved,fdf08000,32KB,,no-node,
+HDMIRX_S,fdf10000,16KB,,no-node,
+Reserved,fdf14000,16KB,,no-node,
+eDP0_S,fdf18000,16KB,,no-node,
+eDP1_S,fdf1c000,16KB,,no-node,
+Reserved,fdf20000,64KB,,no-node,
+INTERCONNECT,fdf30000,896KB,qos@fdf35000 qos@fdf35200 qos@fdf35400 qos@fdf35600 qos@fdf36000 qos@fdf39000 qos@fdf3d800 qos@fdf3e000 qos@fdf3e200 qos@fdf3e400 qos@fdf3e600 qos@fdf40000 qos@fdf40200 qos@fdf40400 qos@fdf40500 qos@fdf40600 qos@fdf40800 qos@fdf41000 qos@fdf41100 qos@fdf60000 qos@fdf60200 qos@fdf60400 qos@fdf61000 qos@fdf61200 qos@fdf61400 qos@fdf62000 qos@fdf63000 qos@fdf64000 qos@fdf66000 qos@fdf66200 qos@fdf66400 qos@fdf66600 qos@fdf66800 qos@fdf66a00 qos@fdf66c00 qos@fdf66e00 qos@fdf67000 qos@fdf67200 qos@fdf70000 qos@fdf71000 qos@fdf72000 qos@fdf72200 qos@fdf72400 qos@fdf80000 qos@fdf81000 qos@fdf81200 qos@fdf82000 qos@fdf82200,okay,
+FIREWALL_DSUDDR,fe010000,32KB,,no-node,
+Reserved,fe018000,96KB,,no-node,
+FIREWALL_DDR,fe030000,32KB,,no-node,
+FIREWALL_SYSMEM,fe038000,32KB,,no-node,
+Reserved,fe040000,64KB,,no-node,
+DMA2DDR,fe050000,64KB,,no-node,
+DDR_MON0,fe060000,16KB,dfi@fe060000,okay,rk3588-dfi
+DDR_MON1,fe064000,16KB,,no-node,
+DDR_MON2,fe068000,16KB,,no-node,
+DDR_MON3,fe06c000,16KB,,no-node,
+Reserved,fe070000,320KB,,no-node,
+DDRPHY0,fe0c0000,64KB,,no-node,
+DDRPHY1,fe0d0000,64KB,,no-node,
+DDRPHY2,fe0e0000,64KB,,no-node,
+DDRPHY3,fe0f0000,64KB,,no-node,
+Reserved,fe100000,64KB,,no-node,
+WDT_DDR,fe110000,32KB,,no-node,
+TIMER_DDR(2CH),fe118000,32KB,,no-node,
+SHARE_MEM_SLV,fe120000,32KB,,no-node,
+AHB2APB,fe128000,32KB,,no-node,
+Reserved,fe130000,128KB,,no-node,
+PCIe3_4L_APB,fe150000,64KB,pcie@fe150000,okay,rk3588-pcie
+PCIe3_2L_APB,fe160000,64KB,pcie@fe160000,disabled,rk3588-pcie
+PCIe3_1L0_APB,fe170000,64KB,pcie@fe170000,okay,rk3588-pcie
+PCIe3_1L1_APB,fe180000,64KB,pcie@fe180000,disabled,rk3588-pcie
+PCIe3_1L2_APB,fe190000,64KB,pcie@fe190000,okay,rk3588-pcie
+Reserved,fe1a0000,64KB,,no-node,
+GMAC0,fe1b0000,64KB,ethernet@fe1b0000 uio@fe1b0000,disabled,rk3588-gmac uio-gmac
+GMAC1,fe1c0000,64KB,ethernet@fe1c0000 uio@fe1c0000,disabled,rk3588-gmac uio-gmac
+Reserved,fe1d0000,256KB,,no-node,
+SATA0,fe210000,64KB,sata@fe210000,disabled,rk-ahci
+SATA1,fe220000,64KB,sata@fe220000,disabled,rk-ahci
+SATA2,fe230000,64KB,sata@fe230000,disabled,rk-ahci
+Reserved,fe240000,448KB,,no-node,
+FSPI,fe2b0000,64KB,spi@fe2b0000,okay,sfc
+SDMMC,fe2c0000,64KB,mmc@fe2c0000,okay,rk3588-dw-mshc
+SDIO,fe2d0000,64KB,mmc@fe2d0000,okay,rk3588-dw-mshc
+EMMC,fe2e0000,64KB,mmc@fe2e0000,okay,rk3588-dwcmshc
+SDMMC_BUF,fe2f0000,64KB,,no-node,
+Reserved,fe300000,448KB,,no-node,
+CRYPTO_NS,fe370000,32KB,crypto@fe370000,disabled,rk3588-crypto
+TRNG_NS,fe378000,32KB,rng@fe378000,okay,trngv1
+KEYLADDER_S,fe380000,64KB,,no-node,
+CRYPTO_S(Slave),fe390000,32KB,,no-node,
+TRNG_S,fe398000,32KB,,no-node,
+OTP_S,fe3a0000,64KB,,no-node,
+Reserved,fe3b0000,64KB,,no-node,
+DCF,fe3c0000,64KB,,no-node,
+TIMER_S_0(6CH),fe3d0000,64KB,,no-node,
+WDT_S,fe3e0000,64KB,,no-node,
+SEC_TRNG_CHK,fe3f0000,64KB,,no-node,
+Reserved,fe400000,128KB,,no-node,
+CRYPTO_S(By Keylad),fe420000,64KB,,no-node,
+Reserved,fe430000,256KB,,no-node,
+I2S0_8CH,fe470000,64KB,i2s@fe470000,okay,rk3588-i2s-tdm
+I2S1_8CH,fe480000,64KB,i2s@fe480000,disabled,rk3588-i2s-tdm
+I2S2_2CH,fe490000,64KB,i2s@fe490000,disabled,rk3588-i2s
+I2S3_2CH,fe4a0000,64KB,i2s@fe4a0000,disabled,rk3588-i2s
+PDM0,fe4b0000,64KB,pdm@fe4b0000,disabled,rk3588-pdm
+PDM1,fe4c0000,64KB,pdm@fe4c0000,disabled,rk3588-pdm
+VAD,fe4d0000,64KB,vad@fe4d0000,disabled,rk3588-vad
+SPDIF_TX0,fe4e0000,64KB,spdif-tx@fe4e0000,disabled,rk3588-spdif
+SPDIF_TX1,fe4f0000,64KB,spdif-tx@fe4f0000,disabled,rk3588-spdif
+ACDCDIG_DSM,fe500000,64KB,codec-digital@fe500000,disabled,rk3588-codec-digital
+Reserved,fe510000,576KB,,no-node,
+SPINLOCK,fe5a0000,64KB,hwspinlock@fe5a0000,okay,hwspinlock
+Reserved,fe5b0000,320KB,,no-node,
+GIC600,fe600000,4MB,interrupt-controller@fe600000,okay,gic-v3
+DMAC0_S,fea00000,64KB,,no-node,
+DMAC0_NS,fea10000,64KB,dma-controller@fea10000,okay,pl330
+DMAC1_S,fea20000,64KB,,no-node,
+DMAC1_NS,fea30000,64KB,dma-controller@fea30000,okay,pl330
+Reserved,fea40000,64KB,,no-node,
+CAN0,fea50000,64KB,can@fea50000,disabled,can-2.0
+CAN1,fea60000,64KB,can@fea60000,disabled,can-2.0
+CAN2,fea70000,64KB,can@fea70000,disabled,can-2.0
+DECOM,fea80000,64KB,decompress@fea80000,disabled,hw-decompress
+I2C1,fea90000,64KB,i2c@fea90000,okay,rk3588-i2c
+I2C2,feaa0000,64KB,i2c@feaa0000,disabled,rk3588-i2c
+I2C3,feab0000,64KB,i2c@feab0000,disabled,rk3588-i2c
+I2C4,feac0000,64KB,i2c@feac0000,okay,rk3588-i2c
+I2C5,fead0000,64KB,i2c@fead0000,disabled,rk3588-i2c
+TIMER_NS_0(6CH),feae0000,32KB,timer@feae0000,okay,rk3588-timer
+TIMER_NS_1(6CH),feae8000,32KB,,no-node,
+WDT_NS,feaf0000,64KB,watchdog@feaf0000,okay,dw-wdt
+SPI0,feb00000,64KB,spi@feb00000,disabled,rk3066-spi
+SPI1,feb10000,64KB,spi@feb10000,disabled,rk3066-spi
+SPI2,feb20000,64KB,spi@feb20000,okay,rk3066-spi
+SPI3,feb30000,64KB,spi@feb30000,disabled,rk3066-spi
+UART1,feb40000,64KB,serial@feb40000,disabled,rk3588-uart
+UART2,feb50000,64KB,serial@feb50000,disabled,rk3588-uart
+UART3,feb60000,64KB,serial@feb60000,disabled,rk3588-uart
+UART4,feb70000,64KB,serial@feb70000,disabled,rk3588-uart
+UART5,feb80000,64KB,serial@feb80000,disabled,rk3588-uart
+UART6,feb90000,64KB,serial@feb90000,okay,rk3588-uart
+UART7,feba0000,64KB,serial@feba0000,disabled,rk3588-uart
+UART8,febb0000,64KB,serial@febb0000,disabled,rk3588-uart
+UART9,febc0000,64KB,serial@febc0000,disabled,rk3588-uart
+PWM1,febd0000,64KB,pwm@febd0000 pwm@febd0010 pwm@febd0020 pwm@febd0030,disabled,rk3588-pwm
+PWM2,febe0000,64KB,pwm@febe0000 pwm@febe0010 pwm@febe0020 pwm@febe0030,disabled,rk3588-pwm
+PWM3,febf0000,64KB,pwm@febf0000 pwm@febf0010 pwm@febf0020 pwm@febf0030,disabled,rk3588-pwm
+TSADC,fec00000,64KB,tsadc@fec00000,okay,rk3588-tsadc
+SARADC,fec10000,64KB,saradc@fec10000,okay,rk3588-saradc
+GPIO1,fec20000,64KB,,no-node,
+GPIO2,fec30000,64KB,,no-node,
+GPIO3,fec40000,64KB,,no-node,
+GPIO4,fec50000,64KB,,no-node,
+MAILBOX0(MCU_PMU),fec60000,64KB,mailbox@fec60000,disabled,rk3588-mailbox
+MAILBOX1(MCU_DDR),fec70000,64KB,mailbox@fec70000,disabled,rk3588-mailbox
+I2C6,fec80000,64KB,i2c@fec80000,okay,rk3588-i2c
+I2C7,fec90000,64KB,i2c@fec90000,okay,rk3588-i2c
+I2C8,feca0000,64KB,i2c@feca0000,disabled,rk3588-i2c
+SPI4,fecb0000,64KB,spi@fecb0000,disabled,rk3066-spi
+OTP_NS,fecc0000,64KB,otp@fecc0000,okay,rk3588-otp
+Reserved,fecd0000,64KB,,no-node,
+MAILBOX2(MCU_NPU),fece0000,64KB,mailbox@fece0000,disabled,rk3588-mailbox
+INTMUX(MCU_PMU),fecf0000,32KB,,no-node,
+INTMUX(MCU_DDR),fecf8000,32KB,,no-node,
+DMAC2_S,fed00000,64KB,,no-node,
+DMAC2_NS,fed10000,64KB,dma-controller@fed10000,okay,pl330
+JTAG_LOCK,fed20000,32KB,,no-node,
+Reserved,fed28000,32KB,,no-node,
+TIMER_S_1(6CH),fed30000,64KB,,no-node,
+Reserved,fed40000,128KB,,no-node,
+HDPTX Combo PHY0,fed60000,64KB,hdmiphy@fed60000 phy@fed60000,disabled/okay,rk3588-hdptx-phy rk3588-hdptx-phy-hdmi
+HDPTX Combo PHY1,fed70000,64KB,hdmiphy@fed70000 phy@fed70000,disabled/okay,rk3588-hdptx-phy rk3588-hdptx-phy-hdmi
+USBDP PHY0,fed80000,64KB,phy@fed80000,okay,rk3588-usbdp-phy
+USBDP PHY1,fed90000,64KB,phy@fed90000,okay,rk3588-usbdp-phy
+MIPI CD PHY0,feda0000,64KB,phy@feda0000,okay,rk3588-mipi-dcphy
+MIPI CD PHY1,fedb0000,64KB,phy@fedb0000,okay,rk3588-mipi-dcphy
+MIPI CSI DPHY0,fedc0000,32KB,csi2-dphy0-hw@fedc0000,okay,rk3588-csi2-dphy-hw
+MIPI CSI DPHY1,fedc8000,32KB,csi2-dphy1-hw@fedc8000,okay,rk3588-csi2-dphy-hw
+Reserved,fedd0000,64KB,,no-node,
+HDMI RX PHY,fede0000,64KB,,no-node,
+Reserved,fedf0000,64KB,,no-node,
+Combo PIPE PHY0,fee00000,64KB,phy@fee00000,okay,rk3588-naneng-combphy
+Combo PIPE PHY1,fee10000,64KB,phy@fee10000,okay,rk3588-naneng-combphy
+Combo PIPE PHY2,fee20000,64KB,phy@fee20000,okay,rk3588-naneng-combphy
+Reserved,fee30000,312KB,,no-node,
+PCIe3 PHY,fee80000,512KB,phy@fee80000,okay,rk3588-pcie3-phy
+Reserved,fef00000,1MB,,no-node,
+SYSTEM_SRAM,ff000000,1MB,sram@ff001000,okay,sram
+PMU_MEM,ff100000,256KB,,no-node,

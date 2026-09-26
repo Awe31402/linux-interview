@@ -1,0 +1,16 @@
+0: fdab0000.npu 
+1: fdb50000.vepu fdb50400.vdpu 
+10: fdbd0000.rkvenc-core 
+11: fdbe0000.rkvenc-core 
+12: fdc38100.rkvdec-core 
+13: fdc48100.rkvdec-core 
+14: fdc70000.av1d 
+15: fdd90000.vop 
+2: fdb60000.rga 
+3: fdb70000.rga 
+4: fdb90000.jpegd 
+5: fdba0000.jpege-core 
+6: fdba4000.jpege-core 
+7: fdba8000.jpege-core 
+8: fdbac000.jpege-core 
+9: fdbb0000.iep 

@@ -1,0 +1,918 @@
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.875 us    |          rcu_all_qs();
+ 5)   2.333 us    |        }
+ 5)   2.917 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.750 us    |        }
+ 5)   0.291 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.000 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.458 us    |        }
+ 5)   0.583 us    |        mutex_unlock();
+ 5)   8.167 us    |      }
+ 5)   0.583 us    |      mutex_unlock();
+ 5) + 12.833 us   |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.000 us    |          rcu_all_qs();
+ 5)   0.875 us    |        }
+ 5)   1.458 us    |      }
+ 5)   0.000 us    |      mutex_unlock();
+ 5)   5.542 us    |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   0.291 us    |        mutex_trylock();
+ 5)   0.875 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   1.166 us    |        clk_core_get_boundaries();
+ 5)   2.042 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   0.875 us    |          scmi_clk_round_rate();
+ 5)   2.041 us    |        }
+ 5)   2.917 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   0.875 us    |      }
+ 5)   8.750 us    |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   0.292 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.291 us    |            rcu_all_qs();
+ 5)   1.167 us    |          }
+ 5)   1.167 us    |        }
+ 5)   0.583 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.291 us    |        mutex_unlock();
+ 5)   5.833 us    |      }
+ 5)   6.125 us    |    }
+ 5)               |    _set_opp() {
+ 5)   0.584 us    |      _opp_compare_key();
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   0.292 us    |            mutex_trylock();
+ 5)   0.875 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   0.583 us    |            clk_core_init_rate_req();
+ 5)   0.583 us    |            clk_core_round_rate_nolock();
+ 5)   0.583 us    |            clk_core_get_rate_nolock();
+ 5)   2.041 us    |            clk_calc_new_rates();
+ 5)   0.583 us    |            clk_pm_runtime_get();
+ 5)   0.292 us    |            clk_propagate_rate_change();
+ 5) + 51.333 us   |            clk_change_rate();
+ 5)   1.166 us    |            clk_pm_runtime_put();
+ 5) + 61.833 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   1.167 us    |            mutex_unlock();
+ 5)   4.375 us    |          }
+ 5) + 70.291 us   |        }
+ 5) + 72.042 us   |      }
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   1.167 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   2.042 us    |          dev_pm_opp_get_supplies();
+ 5)   1.750 us    |          dev_pm_opp_get_supplies();
+ 5)   1.459 us    |          clk_bulk_prepare();
+ 5)   1.166 us    |          clk_bulk_enable();
+ 5)   2.042 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.167 us    |            assert_single_clk();
+ 5)   3.791 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.166 us    |            assert_single_clk();
+ 5)   3.500 us    |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5) + 31.791 us   |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5) + 36.167 us   |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2917.542 us |            regulator_set_voltage();
+ 5) # 2922.500 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 5339.833 us |            regulator_set_voltage();
+ 5) # 5343.333 us |          }
+ 5)   1.459 us    |          clk_bulk_disable();
+ 5)   1.458 us    |          clk_bulk_unprepare();
+ 5) # 8341.958 us |        }
+ 5) # 8347.209 us |      }
+ 5)   2.334 us    |      _set_required_opps();
+ 5)   1.750 us    |      dev_pm_opp_put();
+ 5) # 8430.917 us |    }
+ 5)   1.459 us    |    dev_pm_opp_put();
+ 5)   1.459 us    |    dev_pm_opp_put_opp_table();
+ 5) # 8477.875 us |  }
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   1.458 us    |          rcu_all_qs();
+ 5)   5.834 us    |        }
+ 5)   8.458 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.458 us    |            rcu_all_qs();
+ 5)   3.792 us    |          }
+ 5)   6.125 us    |        }
+ 5)   1.458 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.167 us    |            rcu_all_qs();
+ 5)   3.500 us    |          }
+ 5)   5.833 us    |        }
+ 5)   1.458 us    |        mutex_unlock();
+ 5) + 23.042 us   |      }
+ 5)   1.167 us    |      mutex_unlock();
+ 5) + 37.625 us   |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   1.167 us    |          rcu_all_qs();
+ 5)   4.084 us    |        }
+ 5)   6.125 us    |      }
+ 5)   1.458 us    |      mutex_unlock();
+ 5) + 15.167 us   |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   1.750 us    |        mutex_trylock();
+ 5)   4.083 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   2.917 us    |        clk_core_get_boundaries();
+ 5)   5.834 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   1.458 us    |          scmi_clk_round_rate();
+ 5)   4.959 us    |        }
+ 5)   8.750 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   1.458 us    |        mutex_unlock();
+ 5)   3.792 us    |      }
+ 5) + 28.583 us   |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   1.459 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.167 us    |            rcu_all_qs();
+ 5)   3.500 us    |          }
+ 5)   6.708 us    |        }
+ 5)   1.166 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.166 us    |        _compare_ceil();
+ 5)   1.167 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.750 us    |        _read_freq();
+ 5)   1.458 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.458 us    |        _read_freq();
+ 5)   1.166 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.458 us    |        _compare_ceil();
+ 5)   1.459 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   2.041 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.459 us    |        _read_freq();
+ 5)   1.750 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.458 us    |        _read_freq();
+ 5)   1.166 us    |        mutex_unlock();
+ 5) + 77.583 us   |      }
+ 5) + 79.917 us   |    }
+ 5)               |    _set_opp() {
+ 5)   1.750 us    |      _opp_compare_key();
+ 5)   1.750 us    |      _set_required_opps();
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   1.459 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   1.458 us    |          dev_pm_opp_get_supplies();
+ 5)   1.167 us    |          dev_pm_opp_get_supplies();
+ 5)   1.167 us    |          clk_bulk_prepare();
+ 5)   1.750 us    |          clk_bulk_enable();
+ 5)   1.750 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.166 us    |            assert_single_clk();
+ 5)   3.792 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.167 us    |            assert_single_clk();
+ 5)   3.500 us    |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 5283.833 us |            regulator_set_voltage();
+ 5) # 5288.500 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2823.041 us |            regulator_set_voltage();
+ 5) # 2826.250 us |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5) + 30.042 us   |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5) + 33.542 us   |          }
+ 5)   1.167 us    |          clk_bulk_disable();
+ 5)   1.166 us    |          clk_bulk_unprepare();
+ 5) # 8183.000 us |        }
+ 5) # 8188.249 us |      }
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   1.458 us    |            mutex_trylock();
+ 5)   4.084 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   2.041 us    |            clk_core_init_rate_req();
+ 5)   2.333 us    |            clk_core_round_rate_nolock();
+ 5)   1.458 us    |            clk_core_get_rate_nolock();
+ 5)   4.958 us    |            clk_calc_new_rates();
+ 5)   1.166 us    |            clk_pm_runtime_get();
+ 5)   1.458 us    |            clk_propagate_rate_change();
+ 5) + 37.333 us   |            clk_change_rate();
+ 5)   0.291 us    |            clk_pm_runtime_put();
+ 5) + 61.250 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   0.292 us    |            mutex_unlock();
+ 5)   0.875 us    |          }
+ 5) + 69.708 us   |        }
+ 5) + 71.167 us   |      }
+ 5)   0.292 us    |      dev_pm_opp_put();
+ 5) # 8269.333 us |    }
+ 5)   0.875 us    |    dev_pm_opp_put();
+ 5)   0.000 us    |    dev_pm_opp_put_opp_table();
+ 5) # 8444.042 us |  }
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.875 us    |          rcu_all_qs();
+ 5)   1.750 us    |        }
+ 5)   2.625 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.458 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.000 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.459 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   5.542 us    |      }
+ 5)   0.584 us    |      mutex_unlock();
+ 5)   9.625 us    |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.000 us    |          rcu_all_qs();
+ 5)   0.875 us    |        }
+ 5)   1.458 us    |      }
+ 5)   0.291 us    |      mutex_unlock();
+ 5)   5.542 us    |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   0.292 us    |        mutex_trylock();
+ 5)   0.875 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   0.583 us    |        clk_core_get_boundaries();
+ 5)   1.750 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   0.292 us    |          scmi_clk_round_rate();
+ 5)   1.166 us    |        }
+ 5)   2.042 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   0.584 us    |        mutex_unlock();
+ 5)   0.875 us    |      }
+ 5)   7.583 us    |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   0.292 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.291 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.459 us    |        }
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   4.959 us    |      }
+ 5)   5.541 us    |    }
+ 5)               |    _set_opp() {
+ 5)   0.000 us    |      _opp_compare_key();
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   0.000 us    |            mutex_trylock();
+ 5)   0.875 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   0.583 us    |            clk_core_init_rate_req();
+ 5)   0.584 us    |            clk_core_round_rate_nolock();
+ 5)   0.292 us    |            clk_core_get_rate_nolock();
+ 5)   2.041 us    |            clk_calc_new_rates();
+ 5)   0.584 us    |            clk_pm_runtime_get();
+ 5)   0.583 us    |            clk_propagate_rate_change();
+ 5) + 40.250 us   |            clk_change_rate();
+ 5)   1.458 us    |            clk_pm_runtime_put();
+ 5) + 51.042 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   1.167 us    |            mutex_unlock();
+ 5)   3.500 us    |          }
+ 5) + 58.333 us   |        }
+ 5) + 60.375 us   |      }
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   1.458 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   1.750 us    |          dev_pm_opp_get_supplies();
+ 5)   1.167 us    |          dev_pm_opp_get_supplies();
+ 5)   1.459 us    |          clk_bulk_prepare();
+ 5)   1.750 us    |          clk_bulk_enable();
+ 5)   2.042 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.459 us    |            assert_single_clk();
+ 5)   3.791 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.459 us    |            assert_single_clk();
+ 5)   3.500 us    |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5) + 28.875 us   |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5) + 31.500 us   |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2936.208 us |            regulator_set_voltage();
+ 5) # 2940.292 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 5270.125 us |            regulator_set_voltage();
+ 5) # 5273.625 us |          }
+ 5)   1.458 us    |          clk_bulk_disable();
+ 5)   1.166 us    |          clk_bulk_unprepare();
+ 5) # 8282.458 us |        }
+ 5) # 8288.584 us |      }
+ 5)   1.458 us    |      _set_required_opps();
+ 5)   1.750 us    |      dev_pm_opp_put();
+ 5) # 8358.875 us |    }
+ 5)   1.167 us    |    dev_pm_opp_put();
+ 5)   2.041 us    |    dev_pm_opp_put_opp_table();
+ 5) # 8396.500 us |  }
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   1.750 us    |          rcu_all_qs();
+ 5)   4.958 us    |        }
+ 5)   7.292 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.167 us    |            rcu_all_qs();
+ 5)   3.500 us    |          }
+ 5)   6.416 us    |        }
+ 5)   1.166 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.167 us    |            rcu_all_qs();
+ 5)   3.791 us    |          }
+ 5)   6.125 us    |        }
+ 5)   1.459 us    |        mutex_unlock();
+ 5) + 22.750 us   |      }
+ 5)   1.458 us    |      mutex_unlock();
+ 5) + 37.042 us   |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   1.167 us    |          rcu_all_qs();
+ 5)   3.500 us    |        }
+ 5)   5.833 us    |      }
+ 5)   1.167 us    |      mutex_unlock();
+ 5) + 13.708 us   |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   1.458 us    |        mutex_trylock();
+ 5)   4.375 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   2.334 us    |        clk_core_get_boundaries();
+ 5)   5.250 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   1.750 us    |          scmi_clk_round_rate();
+ 5)   5.250 us    |        }
+ 5)   8.458 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   1.167 us    |        mutex_unlock();
+ 5)   3.792 us    |      }
+ 5) + 28.292 us   |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   2.042 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   1.166 us    |            rcu_all_qs();
+ 5)   3.792 us    |          }
+ 5)   6.125 us    |        }
+ 5)   1.459 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.459 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.458 us    |        _read_freq();
+ 5)   1.166 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   2.041 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.167 us    |        _read_freq();
+ 5)   1.166 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.458 us    |        _read_freq();
+ 5)   1.167 us    |        irq_enter_rcu();
+ 5)               |        do_interrupt_handler() {
+ 5)   ==========> |
+ 5)               |          gic_handle_irq() {
+ 5)   1.166 us    |            gic_read_iar();
+ 5) + 75.250 us   |            generic_handle_domain_irq();
+ 5) + 81.375 us   |          }
+ 5)   <========== |
+ 5) + 84.000 us   |        }
+ 5)               |        irq_exit_rcu() {
+ 5)   1.458 us    |          ksoftirqd_running();
+ 5)               |          do_softirq_own_stack() {
+ 5) + 46.958 us   |            ____do_softirq();
+ 5) + 49.583 us   |          }
+ 5)   1.459 us    |          idle_cpu();
+ 5) + 57.166 us   |        }
+ 5)   1.459 us    |        _compare_ceil();
+ 5)   2.042 us    |        _read_freq();
+ 5)   1.166 us    |        _compare_ceil();
+ 5)   2.333 us    |        _read_freq();
+ 5)   1.167 us    |        _compare_ceil();
+ 5)   1.166 us    |        _read_freq();
+ 5)   1.458 us    |        _compare_ceil();
+ 5)   1.167 us    |        _read_freq();
+ 5)   1.459 us    |        mutex_unlock();
+ 5) ! 224.291 us  |      }
+ 5) ! 227.500 us  |    }
+ 5)               |    _set_opp() {
+ 5)   1.167 us    |      _opp_compare_key();
+ 5)   1.167 us    |      _set_required_opps();
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   1.167 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   1.750 us    |          dev_pm_opp_get_supplies();
+ 5)   1.167 us    |          dev_pm_opp_get_supplies();
+ 5)   1.166 us    |          clk_bulk_prepare();
+ 5)   1.167 us    |          clk_bulk_enable();
+ 5)   1.750 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.166 us    |            assert_single_clk();
+ 5)   3.500 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   1.167 us    |            assert_single_clk();
+ 5)   3.500 us    |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 5313.292 us |            regulator_set_voltage();
+ 5) # 5317.083 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2884.292 us |            regulator_set_voltage();
+ 5) # 2887.500 us |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5) + 28.584 us   |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5) + 31.791 us   |          }
+ 5)   1.167 us    |          clk_bulk_disable();
+ 5)   1.458 us    |          clk_bulk_unprepare();
+ 5) # 8271.083 us |        }
+ 5) # 8276.042 us |      }
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   1.459 us    |            mutex_trylock();
+ 5)   3.791 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   2.042 us    |            clk_core_init_rate_req();
+ 5)   2.334 us    |            clk_core_round_rate_nolock();
+ 5)   1.459 us    |            clk_core_get_rate_nolock();
+ 5)   4.667 us    |            clk_calc_new_rates();
+ 5)   1.167 us    |            clk_pm_runtime_get();
+ 5)   1.458 us    |            clk_propagate_rate_change();
+ 5) + 35.875 us   |            clk_change_rate();
+ 5)   0.292 us    |            clk_pm_runtime_put();
+ 5) + 60.667 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   0.292 us    |            mutex_unlock();
+ 5)   0.583 us    |          }
+ 5) + 68.542 us   |        }
+ 5) + 70.000 us   |      }
+ 5)   0.292 us    |      dev_pm_opp_put();
+ 5) # 8355.958 us |    }
+ 5)   0.292 us    |    dev_pm_opp_put();
+ 5)   0.292 us    |    dev_pm_opp_put_opp_table();
+ 5) # 8677.375 us |  }
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.583 us    |          rcu_all_qs();
+ 5)   2.042 us    |        }
+ 5)   2.625 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.750 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.458 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   6.125 us    |      }
+ 5)   0.583 us    |      mutex_unlock();
+ 5) + 10.208 us   |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.291 us    |          rcu_all_qs();
+ 5)   0.875 us    |        }
+ 5)   1.459 us    |      }
+ 5)   0.000 us    |      mutex_unlock();
+ 5)   3.500 us    |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   0.292 us    |        mutex_trylock();
+ 5)   1.166 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   0.875 us    |        clk_core_get_boundaries();
+ 5)   1.750 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   0.875 us    |          scmi_clk_round_rate();
+ 5)   1.458 us    |        }
+ 5)   2.333 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   0.875 us    |      }
+ 5)   8.458 us    |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   0.292 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.291 us    |            rcu_all_qs();
+ 5)   1.167 us    |          }
+ 5)   1.167 us    |        }
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.583 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.291 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   1.167 us    |        _read_freq();
+ 5)   0.583 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.584 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.000 us    |        _compare_ceil();
+ 5)   0.000 us    |        _read_freq();
+ 5)   0.000 us    |        _compare_ceil();
+ 5)   0.000 us    |        _read_freq();
+ 5)   0.291 us    |        mutex_unlock();
+ 5) + 17.208 us   |      }
+ 5) + 17.792 us   |    }
+ 5)               |    _set_opp() {
+ 5)   0.291 us    |      _opp_compare_key();
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   0.291 us    |            mutex_trylock();
+ 5)   0.875 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   0.292 us    |            clk_core_init_rate_req();
+ 5)   0.583 us    |            clk_core_round_rate_nolock();
+ 5)   0.291 us    |            clk_core_get_rate_nolock();
+ 5)   1.750 us    |            clk_calc_new_rates();
+ 5)   0.583 us    |            clk_pm_runtime_get();
+ 5)   0.583 us    |            clk_propagate_rate_change();
+ 5) + 24.209 us   |            clk_change_rate();
+ 5)   0.292 us    |            clk_pm_runtime_put();
+ 5) + 30.625 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   0.000 us    |            mutex_unlock();
+ 5)   0.875 us    |          }
+ 5) + 34.125 us   |        }
+ 5) + 35.292 us   |      }
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   0.000 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   0.583 us    |          dev_pm_opp_get_supplies();
+ 5)   0.291 us    |          dev_pm_opp_get_supplies();
+ 5)   0.292 us    |          clk_bulk_prepare();
+ 5)   0.000 us    |          clk_bulk_enable();
+ 5)   0.292 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   0.292 us    |            assert_single_clk();
+ 5)   0.584 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   0.292 us    |            assert_single_clk();
+ 5)   0.875 us    |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5)   8.166 us    |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5)   8.458 us    |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2348.208 us |            regulator_set_voltage();
+ 5) # 2349.375 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 4267.375 us |            regulator_set_voltage();
+ 5) # 4268.250 us |          }
+ 5)   0.583 us    |          clk_bulk_disable();
+ 5)   0.583 us    |          clk_bulk_unprepare();
+ 5) # 6634.542 us |        }
+ 5) # 6635.709 us |      }
+ 5)   0.584 us    |      _set_required_opps();
+ 5)   0.292 us    |      dev_pm_opp_put();
+ 5) # 6674.500 us |    }
+ 5)   0.292 us    |    dev_pm_opp_put();
+ 5)   0.292 us    |    dev_pm_opp_put_opp_table();
+ 5) # 6721.459 us |  }
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.583 us    |          rcu_all_qs();
+ 5)   1.750 us    |        }
+ 5)   2.625 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   1.166 us    |          }
+ 5)   1.750 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.583 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   2.625 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   7.000 us    |      }
+ 5)   0.292 us    |      mutex_unlock();
+ 5) + 11.375 us   |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.292 us    |          rcu_all_qs();
+ 5)   1.166 us    |        }
+ 5)   1.750 us    |      }
+ 5)   0.292 us    |      mutex_unlock();
+ 5)   3.500 us    |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   0.583 us    |        mutex_trylock();
+ 5)   1.459 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   0.875 us    |        clk_core_get_boundaries();
+ 5)   1.750 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   0.292 us    |          scmi_clk_round_rate();
+ 5)   1.167 us    |        }
+ 5)   2.042 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   0.291 us    |        mutex_unlock();
+ 5)   0.875 us    |      }
+ 5)   7.875 us    |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   0.291 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   0.875 us    |          }
+ 5)   1.750 us    |        }
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.000 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.291 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.000 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.584 us    |        _read_freq();
+ 5)   0.292 us    |        mutex_unlock();
+ 5) + 14.000 us   |      }
+ 5) + 14.875 us   |    }
+ 5)               |    _set_opp() {
+ 5)   0.292 us    |      _opp_compare_key();
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   0.292 us    |            mutex_trylock();
+ 5)   0.875 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   0.292 us    |            clk_core_init_rate_req();
+ 5)   0.292 us    |            clk_core_round_rate_nolock();
+ 5)   0.291 us    |            clk_core_get_rate_nolock();
+ 5)   1.166 us    |            clk_calc_new_rates();
+ 5)   0.292 us    |            clk_pm_runtime_get();
+ 5)   0.292 us    |            clk_propagate_rate_change();
+ 5) + 19.541 us   |            clk_change_rate();
+ 5)   0.292 us    |            clk_pm_runtime_put();
+ 5) + 25.375 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   0.291 us    |            mutex_unlock();
+ 5)   0.583 us    |          }
+ 5) + 28.000 us   |        }
+ 5) + 28.875 us   |      }
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   0.875 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   1.458 us    |          dev_pm_opp_get_supplies();
+ 5)   0.584 us    |          dev_pm_opp_get_supplies();
+ 5)   0.292 us    |          clk_bulk_prepare();
+ 5)   0.583 us    |          clk_bulk_enable();
+ 5)   0.291 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   0.292 us    |            assert_single_clk();
+ 5)   1.167 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   0.292 us    |            assert_single_clk();
+ 5)   0.875 us    |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5)   8.167 us    |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5)   9.042 us    |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2359.292 us |            regulator_set_voltage();
+ 5) # 2360.166 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 4265.625 us |            regulator_set_voltage();
+ 5) # 4266.500 us |          }
+ 5)   0.584 us    |          clk_bulk_disable();
+ 5)   0.292 us    |          clk_bulk_unprepare();
+ 5) # 6645.625 us |        }
+ 5) # 6647.667 us |      }
+ 5)   0.583 us    |      _set_required_opps();
+ 5)   0.291 us    |      dev_pm_opp_put();
+ 5) # 6679.750 us |    }
+ 5)   0.291 us    |    dev_pm_opp_put();
+ 5)   0.583 us    |    dev_pm_opp_put_opp_table();
+ 5) # 6722.333 us |  }
+ 5)               |  dev_pm_opp_set_rate() {
+ 5)               |    _find_opp_table() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.583 us    |          rcu_all_qs();
+ 5)   1.167 us    |        }
+ 5)   2.041 us    |      }
+ 5)               |      _find_opp_table_unlocked() {
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.583 us    |            rcu_all_qs();
+ 5)   1.167 us    |          }
+ 5)   2.041 us    |        }
+ 5)   0.291 us    |        mutex_unlock();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.292 us    |            rcu_all_qs();
+ 5)   1.167 us    |          }
+ 5)   1.750 us    |        }
+ 5)   0.292 us    |        mutex_unlock();
+ 5)   7.000 us    |      }
+ 5)   0.291 us    |      mutex_unlock();
+ 5) + 11.084 us   |    }
+ 5)               |    _get_opp_count() {
+ 5)               |      mutex_lock() {
+ 5)               |        __cond_resched() {
+ 5)   0.291 us    |          rcu_all_qs();
+ 5)   1.167 us    |        }
+ 5)   1.750 us    |      }
+ 5)   0.583 us    |      mutex_unlock();
+ 5)   3.792 us    |    }
+ 5)               |    clk_round_rate() {
+ 5)               |      clk_prepare_lock() {
+ 5)   0.292 us    |        mutex_trylock();
+ 5)   1.458 us    |      }
+ 5)               |      clk_core_init_rate_req() {
+ 5)   0.584 us    |        clk_core_get_boundaries();
+ 5)   1.750 us    |      }
+ 5)               |      clk_core_round_rate_nolock() {
+ 5)               |        clk_core_determine_round_nolock() {
+ 5)   0.584 us    |          scmi_clk_round_rate();
+ 5)   1.166 us    |        }
+ 5)   2.042 us    |      }
+ 5)               |      clk_prepare_unlock() {
+ 5)   0.584 us    |        mutex_unlock();
+ 5)   1.166 us    |      }
+ 5)   8.459 us    |    }
+ 5)               |    _find_freq_ceil() {
+ 5)               |      _opp_table_find_key() {
+ 5)   0.583 us    |        assert_single_clk();
+ 5)               |        mutex_lock() {
+ 5)               |          __cond_resched() {
+ 5)   0.291 us    |            rcu_all_qs();
+ 5)   1.167 us    |          }
+ 5)   2.333 us    |        }
+ 5)   0.291 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.583 us    |        _read_freq();
+ 5)   0.583 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.291 us    |        _read_freq();
+ 5)   0.291 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.583 us    |        _read_freq();
+ 5)   1.166 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.584 us    |        _compare_ceil();
+ 5)   0.584 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.292 us    |        _read_freq();
+ 5)   0.292 us    |        _compare_ceil();
+ 5)   0.291 us    |        _read_freq();
+ 5)   0.292 us    |        mutex_unlock();
+ 5) + 24.500 us   |      }
+ 5) + 25.084 us   |    }
+ 5)               |    _set_opp() {
+ 5)   0.291 us    |      _opp_compare_key();
+ 5)   0.291 us    |      _set_required_opps();
+ 5)               |      cpu_opp_config_regulators [rockchip_cpufreq]() {
+ 5)   0.291 us    |        rockchip_cluster_info_lookup [rockchip_cpufreq]();
+ 5)               |        rockchip_opp_config_regulators() {
+ 5)   0.292 us    |          dev_pm_opp_get_supplies();
+ 5)   0.875 us    |          dev_pm_opp_get_supplies();
+ 5)   0.292 us    |          clk_bulk_prepare();
+ 5)   0.584 us    |          clk_bulk_enable();
+ 5)   0.292 us    |          rockchip_get_read_margin();
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   0.583 us    |            assert_single_clk();
+ 5)   1.167 us    |          }
+ 5)               |          dev_pm_opp_get_freq() {
+ 5)   0.584 us    |            assert_single_clk();
+ 5)   1.166 us    |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 4472.124 us |            regulator_set_voltage();
+ 5) # 4473.875 us |          }
+ 5)               |          rockchip_opp_set_volt() {
+ 5) # 2319.625 us |            regulator_set_voltage();
+ 5) # 2320.500 us |          }
+ 5)               |          rockchip_set_read_margin() {
+ 5)   5.542 us    |            rk3588_cpu_set_read_margin [rockchip_cpufreq]();
+ 5)   6.416 us    |          }
+ 5)   0.292 us    |          clk_bulk_disable();
+ 5)   0.000 us    |          clk_bulk_unprepare();
+ 5) # 6810.416 us |        }
+ 5) # 6811.875 us |      }
+ 5)               |      _opp_config_clk_single() {
+ 5)               |        clk_set_rate() {
+ 5)               |          clk_prepare_lock() {
+ 5)   0.292 us    |            mutex_trylock();
+ 5)   0.875 us    |          }
+ 5)               |          clk_core_set_rate_nolock() {
+ 5)   0.291 us    |            clk_core_init_rate_req();
+ 5)   0.583 us    |            clk_core_round_rate_nolock();
+ 5)   0.292 us    |            clk_core_get_rate_nolock();
+ 5)   0.875 us    |            clk_calc_new_rates();
+ 5)   0.584 us    |            clk_pm_runtime_get();
+ 5)   0.292 us    |            clk_propagate_rate_change();
+ 5) + 20.708 us   |            clk_change_rate();
+ 5)   0.291 us    |            clk_pm_runtime_put();
+ 5) + 26.250 us   |          }
+ 5)               |          clk_prepare_unlock() {
+ 5)   0.292 us    |            mutex_unlock();
+ 5)   1.458 us    |          }
+ 5) + 30.042 us   |        }
+ 5) + 30.917 us   |      }
+ 5)   0.875 us    |      dev_pm_opp_put();
+ 5) # 6846.292 us |    }
+ 5)   0.292 us    |    dev_pm_opp_put();
+ 5)   0.583 us    |    dev_pm_opp_put_opp_table();
+ 5) # 6899.958 us |  }
