@@ -21,7 +21,7 @@ P2 ch2 DMC、ch17/18 的體質分數另見 [`rock5b_explore/`](../rock5b_explore
 
 ## 最重要的發現
 
-- **VOP Writeback**（不接螢幕驗證 VOP）：Coverage 混色在單視窗 Cluster 圖層上被當成預乘；只有 Writeback 時像素時脈只有 9.28 MHz（1080p 實際 16.8 Hz）；Writeback 的 BGR888 位元組順序和 DRM 定義相反；圖層放大水平 bicubic、垂直 bilinear（H §7）
+- **VOP Writeback**（不接螢幕驗證 VOP）：Coverage 混色在單視窗 Cluster 圖層上被當成預乘；只有 Writeback 時像素時脈只有 9.28 MHz（1080p 實際 16.8 Hz）；Writeback 的 BGR888 位元組順序和 DRM 定義相反；圖層放大水平 bicubic、垂直 bilinear；960×540 的 POST_BUF_EMPTY 是真 underflow，觸發條件是「前廊太短＋htotal 沒對齊 4」，驅動 `>> 1` 造的模式正好踩線（H §7）
 - **PVTPLL**：TRM 漏列的 STATUS 暫存器找到了；量測窗剛好 1 µs 所以讀值 = MHz；頻率掃描量出晶片的電壓—頻率曲線（低頻縮短振盪環、高頻加電壓），並用它內插出開機體質分數，誤差 < 1%（H §5）
 - **VPU**：H.264 硬體和 H.265 一樣快（每幀 3.76 ms），GStreamer 外掛卻隨機卡住數秒；解碼是雙核輪流（G §1）
 

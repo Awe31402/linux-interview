@@ -251,7 +251,7 @@ Writeback 不是實體輸出介面（`type: 0`），驅動算出的目標 dclk �
 - debugfs `summary` 卻寫 `real_dclk[148500 kHz]`——那是要求值，不是真實值
 - `wbtest` 用模式算的「vsync period 7.44 ms」（960×540）也是錯的，實際 14.8 ms
 
-另外 960×540 那輪 dmesg 出現一串 `vop2_isr *ERROR* POST_BUF_EMPTY irq err at vp0`（1080p 沒有）。原因**待查**。
+另外 960×540 那輪 dmesg 出現一串 `vop2_isr *ERROR* POST_BUF_EMPTY irq err at vp0`（1080p 沒有）。原因見 §7.8。
 
 ### 7.6 發現 3：Writeback 的 BGR888 寫出來是 RGB888 的位元組順序
 
@@ -269,3 +269,95 @@ DRM 定義（`drm_fourcc.h`）：`DRM_FORMAT_BGR888 = [23:0] B:G:R little endian
 - **NV12**：用 R/G/B 三原色反推 Y = 0.2549 R + 0.5020 G + 0.0980 B + 16；BT.601 limited 是 0.2568/0.5041/0.0979/+16 ✅。
   白 Y=235、黑 Y=16，紅 V=240、藍 U=240（limited range 上限）。debugfs 也寫 `color-encoding[BT.601] color-range[Limited]`
 - **fence 時間**：永遠是 2 個 vsync，對應驅動 `vop2_wb_handler()` 的 `fs_vsync_cnt == 2` 才 `drm_writeback_signal_completion()`
+
+### 7.8 POST_BUF_EMPTY：前廊太短 + htotal 沒對齊 4（2026-09-26 追查）
+
+> 工具：`tools/vop_wb/irq_trace.sh`（kprobe 計數）、`wbtest custom` + `MODE=` 自訂時序、`check_custom.py`、`where_in_frame.py`
+
+#### 它是什麼
+
+TRM Part2 §7.2：資料流是 DMA → 圖層 → OVERLAY → POST PROCESS → **POST LINE BUFFER** → 輸出介面。
+`POST_BUF_EMPTY`（VP 中斷狀態 bit 12）＝輸出端（dclk 側）要取像素時 post line buffer 是空的，也就是 **underflow**。
+TRM 只在暫存器表列了 enable/clear/status 位元，沒有觸發條件的說明。
+
+#### 先算清楚到底發生幾次
+
+dmesg 只看到 10 行，因為驅動用 `DRM_DEV_ERROR_RATELIMITED` 印（5 秒最多 10 則）。
+改用 kprobe/kretprobe 抓 `vop2_read_and_clear_active_vp_irqs()` 的參數（vp）與回傳值（該次中斷的狀態位元），完全繞過限流：
+
+```
+p:vopirq/vpin  vop2_read_and_clear_active_vp_irqs vp=%x1:s32
+r:vopirq/vpout vop2_read_and_clear_active_vp_irqs ret=$retval:x32
+```
+
+| 模式 | FS_FIELD（格數） | POST_BUF_EMPTY |
+|------|-----------------|---------------|
+| 960×540（htotal 995） | 23 | **72**：第 1 格到最後一格，**每格固定 3 次** |
+| 1920×1080（htotal 1990） | 20 | **0** |
+
+→ 不是開機暫態，是**每一格都在 underflow**。
+
+#### 拆變因（`MODE="clock,hd,hss,hse,ht,vd,vss,vse,vt"`）
+
+一路被推翻的假設：
+
+| 假設 | 反例 |
+|------|------|
+| 畫面寬/高 | 1920×1080 配 htotal 1955 一樣出錯；1920×540 配 htotal 1990 正常 |
+| 水平空白（htotal − hdisplay）太短 | 空白 36、32、20 都正常；空白 66 仍出錯 |
+| htotal 是奇數 | 994、998（偶數）出錯；1099、1101（奇數）正常 |
+| 硬體把 htotal 捨去成 4 的倍數 | 量 FS 間隔：每個 htotal 的格長都等於「htotal × vtotal ÷ 37.125 MHz」，差 < 0.01%（例如 995：預測 14.8747 ms、實測 14.8750 ms）。硬體照設定跑，沒捨去 |
+
+（最後這項順便把 §7.5 的像素率精確驗證成 **37.125 Mpix/s = 4 × 9.28125 MHz**。）
+
+真正的變因是 **前廊（front porch = hsync_start − hdisplay）** 和 **htotal 除以 4 的餘數**。
+固定 htotal = 995，只改前廊與同步寬度：前廊 ≤ 6 出錯、≥ 7 正常；同步寬度 4~16 完全沒影響。
+
+完整對照（960×540，同步寬度 5，每格約 3 次＝輕微；上千次＝嚴重）：
+
+| 前廊 | htotal ≡ 0 (996) | ≡ 1 (993) | ≡ 2 (994) | ≡ 3 (995) |
+|------|-----------------|-----------|-----------|-----------|
+| 1 | 32 | **6219** | 30 | **6216** |
+| 2 | 27 | **5967** | 36 | **4654** |
+| 3 | 27 | 15 | 36 | 27 |
+| 4 | **0** | 27 | 15 | 30 |
+| 5 | 0 | 27 | 36 | 27 |
+| 6 | 0 | 36 | **0** | 36 |
+| 7 | 0 | **0** | 0 | **0** |
+
+**最小前廊**：htotal 是 4 的倍數 → 4 像素；餘 2 → 6；奇數 → 7。**前廊 ≥ 7 一律安全。**
+輸出端一個 dclk 送 4 個像素（TRM §7.3：「4 pixel rate × 600M」），htotal 不整除 4 時，每行最後一組 4 像素會跨行，
+推測因此吃掉了 line buffer 在行尾需要的準備時間。具體的硬體機制 TRM 沒寫，這個解釋是**推測**，但對照表本身是實測。
+
+驅動的 Writeback 模式是 1920×1080（前廊 10、htotal 1990 ≡ 2）→ 安全；
+它 `>> 1` 造出的 960×540 是前廊 **5**、htotal **995**（≡ 3）→ 落在出錯區。`>> 1` 把前廊從 10 砍成 5 是問題根源。
+
+#### 發生在哪裡、有什麼後果
+
+用 FS 當每格起點、行長 = htotal ÷ 37.125 MHz，換算每次 underflow 在第幾行（`where_in_frame.py`）：
+
+- **輕微**（htotal 995、前廊 5）：集中在第 9~17 行。這個模式 vact_st = vtotal − vsync_start = 10，
+  所以是**有效畫面剛開始的前幾行**（差幾行是中斷延遲）
+- **嚴重**（htotal 993、前廊 1）：從第 9 行開始，整格一路都在發生
+
+逐像素檢查寫回的影像（`check_custom.py`，960×540 漸層）：
+
+| 設定 | POST_BUF_EMPTY | 錯誤像素 |
+|------|---------------|---------|
+| htotal 996、前廊 5 | 0 | 0 |
+| htotal 995、前廊 7 | 0 | 0 |
+| htotal 995、前廊 5（輕微） | 21 | **0** |
+| htotal 994、前廊 4（輕微） | 21 | **0** |
+| htotal 993、前廊 1（嚴重） | 5177 | **960 = 整個最後一行（y=539）** |
+| htotal 995、前廊 1（嚴重） | 4144 | **960 = 整個最後一行** |
+
+嚴重時最後一行保留 `0x5a` 填充值 → **Writeback 根本沒寫最後一行**。輕微時寫回影像完全正確。
+（接真螢幕時 underflow 會怎麼表現——例如閃爍、錯位——沒測，因為沒接螢幕。）
+
+#### 結論
+
+1. 960×540 的 POST_BUF_EMPTY 是**真的 underflow**，每格都在發生，dmesg 被限流才看起來只有 10 次
+2. 觸發條件是 **前廊太短，而且 htotal 不是 4 的倍數時門檻更高**（最小前廊 4 / 6 / 7）
+3. 驅動 `vop2_wb_connector_get_modes()` 用 `>> 1` 造 960×540，前廊變 5、htotal 變 995，正好踩線；
+   把 960×540 的時序改成前廊 ≥ 7（或 htotal 取 4 的倍數，如 996）就不會觸發
+4. 輕微 underflow 不影響寫回影像；嚴重時會少寫最後一行

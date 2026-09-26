@@ -279,6 +279,21 @@ static int find_resources(void)
 		printf("  wb mode[%d] %s %ux%u clock %u kHz htotal %u vtotal %u → %.3f Hz\n", m, wb_modes[m].name,
 		       wb_modes[m].hdisplay, wb_modes[m].vdisplay, wb_modes[m].clock, wb_modes[m].htotal,
 		       wb_modes[m].vtotal, wb_modes[m].clock * 1000.0 / wb_modes[m].htotal / wb_modes[m].vtotal);
+	if (getenv("MODE")) {	/* MODE="clock_khz,hd,hss,hse,ht,vd,vss,vse,vt" 覆寫 wb_modes[0] */
+		struct drm_mode_modeinfo *m = &wb_modes[0];
+		unsigned v[9];
+
+		if (sscanf(getenv("MODE"), "%u,%u,%u,%u,%u,%u,%u,%u,%u", &v[0], &v[1], &v[2], &v[3], &v[4],
+			   &v[5], &v[6], &v[7], &v[8]) == 9) {
+			memset(m, 0, sizeof(*m));
+			m->clock = v[0]; m->hdisplay = v[1]; m->hsync_start = v[2]; m->hsync_end = v[3]; m->htotal = v[4];
+			m->vdisplay = v[5]; m->vsync_start = v[6]; m->vsync_end = v[7]; m->vtotal = v[8];
+			m->vrefresh = m->clock * 1000 / m->htotal / m->vtotal;
+			m->type = DRM_MODE_TYPE_DRIVER;
+			snprintf(m->name, sizeof(m->name), "%ux%u", m->hdisplay, m->vdisplay);
+			printf("  MODE override: %s clock %u htotal %u vtotal %u\n", m->name, m->clock, m->htotal, m->vtotal);
+		}
+	}
 	printf("  wb encoder possible_crtcs = 0x%x\n", possible);
 	crtc_idx = 0;
 	crtc_id = crtcs[crtc_idx];
@@ -498,6 +513,17 @@ int main(int argc, char **argv)
 	if (find_resources())
 		return 1;
 	int fails = 0;
+
+	if (argc > 1 && !strcmp(argv[1], "custom")) {
+		struct scen c = { "custom", 0, wb_modes[0].hdisplay, wb_modes[0].vdisplay, P_GRAD, 0, NULL,
+				  wb_modes[0].hdisplay, wb_modes[0].vdisplay, DRM_FORMAT_ARGB8888,
+				  getenv("FRAMES") ? atoi(getenv("FRAMES")) : 10 };
+
+		fails = run(&c) ? 1 : 0;
+		ioctl(fd, DRM_IOCTL_DROP_MASTER, 0);
+		printf("\ndone, %d failed\n", fails);
+		return fails ? 2 : 0;
+	}
 
 	for (unsigned i = 0; i < sizeof(scens) / sizeof(scens[0]); i++) {
 		int want = argc < 2;
